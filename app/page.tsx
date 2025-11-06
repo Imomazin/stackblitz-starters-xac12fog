@@ -5,10 +5,19 @@ export default function Home() {
   const [text, setText] = useState("");
   const [reply, setReply] = useState("");
 
-  function handleClick() {
-    setReply(
-      "This is your SME Risk Coach. Tell me what’s happening, and I’ll suggest your next 3 actions."
-    );
+  async function handleClick() {
+    setReply("Thinking...");
+    try {
+      const res = await fetch("/api/riskcoach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      setReply(data.reply || "No response.");
+    } catch {
+      setReply("Network error. Try again.");
+    }
   }
 
   return (
