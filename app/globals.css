@@ -2,4 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-.prose-sm p { margin: 0.25rem 0; }
+:root {
+  /* Light theme vars */
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --text: #222222;
+  --text-mute: #6b7280;
+  --border: #00000010;
+
+  --primary: #5c33f6;    /* deep indigo */
+  --secondary: #00c9a7;  /* modern mint */
+  --highlight: #ff6f61;  /* coral pink */
+}
+
+html.dark {
+  /* Dark theme vars */
+  --bg: #0a0a0a;
+  --surface: #121212;
+  --text: #eaeaea;
+  --text-mute: #a3a3a3;
+  --border: #ffffff20;
+
+  --primary: #7b3fe4;    /* electric purple */
+  --secondary: #00f5d4;  /* neon teal */
+  --highlight: #ff2e8e;  /* magenta glow */
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-text font-sans antialiased;
+}
+
+/* Animated gradient behind the app */
+.bg-drift {
+  background-image: radial-gradient(1200px 600px at 0% 0%, var(--primary)10%, transparent 60%),
+                    radial-gradient(1000px 800px at 100% 100%, var(--secondary)12%, transparent 60%),
+                    linear-gradient(180deg, transparent, transparent 60%);
+  background-size: 200% 200%;
+}
+
+/* Shimmer utility for loading placeholders */
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+  background-size: 200% 100%;
+}
