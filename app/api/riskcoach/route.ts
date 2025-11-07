@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 export const runtime = 'nodejs'; // keep SDK happy on Vercel
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 type Plan = {
   summary: string;
@@ -131,7 +133,7 @@ Best regards,
     const raw = completion.choices[0]?.message?.content;
     const requestId = completion.id;
 
-    if (!raw) {
+    if (!raw || typeof raw !== 'string') {
       console.error('[riskcoach] empty AI response, requestId:', requestId);
       return NextResponse.json(
         { error: 'Empty AI response' },
