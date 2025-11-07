@@ -17,7 +17,7 @@ import { clampInput, redactPII } from "./lib/redact";
 type CoachResponse = { reply?: string; plan?: any; error?: string; score?: number };
 
 export default function Home() {
-  const [text, setText] = useState("");
+  const [text, setText] = useState<string>("");
   const [out, setOut] = useState<CoachResponse | null>(null);
   const [status, setStatus] = useState<"idle"|"thinking"|"done"|"error">("idle");
 

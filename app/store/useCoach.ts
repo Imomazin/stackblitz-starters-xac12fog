@@ -5,8 +5,8 @@ import dayjs from "dayjs";
 export type SavedPlan = {
   id: string;
   input: string;
-  plan: any | null;
-  reply: string | null;
+  plan: any;
+  reply?: string;
   createdAt: string;
   rating?: string;
 };
@@ -52,9 +52,9 @@ export function makeSaved(input: string, result: any) {
   return {
     id: crypto.randomUUID(),
     input,
-    plan: result?.plan ?? null,
-    reply: result?.reply ?? null,
+    plan: result?.plan,
+    reply: result?.reply,
     createdAt: dayjs().toISOString(),
-    rating: result?.plan?.rating ?? undefined,
+    rating: result?.plan?.rating,
   } as SavedPlan;
 }
