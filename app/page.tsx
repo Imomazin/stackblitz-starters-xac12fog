@@ -33,18 +33,37 @@ export default function Home() {
 
     // compliance helpers
     const safe = redactPII(clampInput(text));
+    console.log("[Risk Coach] Sending request with message:", safe);
+
     try {
       const res = await fetch("/api/riskcoach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: safe }),
       });
+
+      console.log("[Risk Coach] Response status:", res.status, res.statusText);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("[Risk Coach] API error:", errorText);
+        setOut({ reply: `API error (${res.status}): ${errorText}` });
+        setStatus("error");
+        return;
+      }
+
       const data = await res.json() as CoachResponse;
+      console.log("[Risk Coach] Response data:", data);
+      console.log("[Risk Coach] Has plan:", !!data.plan);
+      console.log("[Risk Coach] Has reply:", !!data.reply);
+
       setOut(data);
       setStatus("done");
       add(makeSaved(safe, data));
-    } catch {
-      setOut({ reply: "Network error. Try again." }); setStatus("error");
+    } catch (err) {
+      console.error("[Risk Coach] Caught error:", err);
+      setOut({ reply: "Network error. Try again." });
+      setStatus("error");
     }
   }
 
