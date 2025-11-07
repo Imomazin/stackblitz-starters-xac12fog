@@ -1,6 +1,6 @@
 // app/api/riskcoach/route.ts
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
 export const runtime = 'nodejs'; // keep SDK happy on Vercel
 export const dynamic = 'force-dynamic';
@@ -18,10 +18,10 @@ type Plan = {
   confidence?: number; // 0..1
 };
 
-const SYSTEM_PROMPT = `
-You are an SME (small/medium enterprise) risk coach.
-Return a compact JSON object ONLY (no prose outside JSON) with:
+const SYSTEM_PROMPT = `You are an SME (small/medium enterprise) risk coach.
+You must respond with ONLY a valid JSON object (no other text before or after).
 
+The JSON object must have this exact structure:
 {
   "summary": "one sentence summary of the situation + the chosen strategy",
   "rating": "Low | Medium | High - brief reason",
@@ -35,13 +35,13 @@ Return a compact JSON object ONLY (no prose outside JSON) with:
 }
 
 Policies:
-- Never include any text outside the JSON.
+- Never include any text outside the JSON object.
 - Be realistic, concise, and actionable.
 - Rating should start with Low, Medium, or High followed by a brief reason.
 - Owners can be roles (Ops Lead, Procurement, Account Manager).
 - Actions should be specific and time-bound.
 - Template should be a ready-to-use text (e.g., email to customer or internal update).
-`;
+- Confidence is a number between 0 and 1.`;
 
 function heuristicScore(text: string): number {
   const t = text.toLowerCase();
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({} as any));
     const message: string = typeof body?.message === 'string' ? body.message : '';
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     const hasKey = !!apiKey;
 
     console.log('[riskcoach] Request received:', {
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     // Fallback if no key
     if (!hasKey) {
-      console.warn('[riskcoach] OPENAI_API_KEY not found, returning mock response');
+      console.warn('[riskcoach] ANTHROPIC_API_KEY not found, returning mock response');
       const reply =
         "I've structured your response into key steps. Let's take the next action.";
       const plan: Plan = {
@@ -124,32 +124,46 @@ Best regards,
       );
     }
 
-    // Real AI call
-    console.log('[riskcoach] Initializing OpenAI client');
-    const openai = new OpenAI({ apiKey });
-    const model = 'gpt-4o-mini';
+    // Real AI call with Anthropic Claude
+    console.log('[riskcoach] Initializing Anthropic client');
+    const anthropic = new Anthropic({ apiKey });
+    const model = 'claude-3-5-sonnet-20241022';
 
-    console.log('[riskcoach] Calling OpenAI API with model:', model);
-    const completion = await openai.chat.completions.create({
+    console.log('[riskcoach] Calling Anthropic API with model:', model);
+    const response = await anthropic.messages.create({
       model,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: message || 'No details provided.' }
-      ],
-      response_format: { type: 'json_object' },
+      max_tokens: 2048,
       temperature: 0.7,
+      system: SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: message || 'No details provided.'
+        }
+      ],
     });
 
-    const raw = completion.choices[0]?.message?.content;
-    const requestId = completion.id;
+    const requestId = response.id;
 
-    console.log('[riskcoach] OpenAI response received:', {
+    console.log('[riskcoach] Anthropic response received:', {
       requestId,
-      hasContent: !!raw,
-      contentLength: raw?.length || 0,
-      model: completion.model,
-      usage: completion.usage,
+      stopReason: response.stop_reason,
+      model: response.model,
+      usage: response.usage,
     });
+
+    // Extract text content from response
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      console.error('[riskcoach] unexpected content type:', content.type);
+      return NextResponse.json(
+        { error: 'Unexpected response type from AI', requestId },
+        { status: 500 }
+      );
+    }
+
+    const raw = content.text;
+    console.log('[riskcoach] Response text length:', raw.length);
 
     if (!raw || typeof raw !== 'string') {
       console.error('[riskcoach] empty AI response, requestId:', requestId);
@@ -159,9 +173,13 @@ Best regards,
       );
     }
 
+    // Parse JSON response
     let parsed: Plan | null = null;
     try {
-      parsed = JSON.parse(raw) as Plan;
+      // Try to find JSON in the response (in case there's extra text)
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : raw;
+      parsed = JSON.parse(jsonStr) as Plan;
       console.log('[riskcoach] Successfully parsed JSON response');
     } catch (e) {
       console.error('[riskcoach] JSON parse error:', e, 'raw:', raw.slice(0, 500), 'requestId:', requestId);
@@ -187,6 +205,8 @@ Best regards,
         '7d': parsed.actions_7d?.length || 0,
         '30d': parsed.actions_30d?.length || 0,
       },
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
     });
 
     return NextResponse.json(
@@ -196,8 +216,9 @@ Best regards,
         checklist: parsed.checklist,
         rating: parsed.rating,
         score,
-        _source: 'openai',
+        _source: 'anthropic',
         _requestId: requestId,
+        _model: model,
       },
       { status: 200 }
     );
