@@ -55,11 +55,19 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({} as any));
     const message: string = typeof body?.message === 'string' ? body.message : '';
 
-    const hasKey = !!process.env.OPENAI_API_KEY;
-    console.log('[riskcoach] hasKey:', hasKey);
+    const apiKey = process.env.OPENAI_API_KEY;
+    const hasKey = !!apiKey;
+
+    console.log('[riskcoach] Request received:', {
+      hasKey,
+      keyPrefix: apiKey?.slice(0, 7) || 'none',
+      messageLength: message.length,
+      timestamp: new Date().toISOString(),
+    });
 
     // Fallback if no key
     if (!hasKey) {
+      console.warn('[riskcoach] OPENAI_API_KEY not found, returning mock response');
       const reply =
         "I've structured your response into key steps. Let's take the next action.";
       const plan: Plan = {
@@ -111,15 +119,17 @@ Best regards,
         confidence: 0.7
       };
       return NextResponse.json(
-        { plan, reply, score: plan.confidence ?? 0.7, source: 'mock' },
+        { plan, reply, score: plan.confidence ?? 0.7, _source: 'mock' },
         { status: 200 }
       );
     }
 
     // Real AI call
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    console.log('[riskcoach] Initializing OpenAI client');
+    const openai = new OpenAI({ apiKey });
     const model = 'gpt-4o-mini';
 
+    console.log('[riskcoach] Calling OpenAI API with model:', model);
     const completion = await openai.chat.completions.create({
       model,
       messages: [
@@ -133,10 +143,18 @@ Best regards,
     const raw = completion.choices[0]?.message?.content;
     const requestId = completion.id;
 
+    console.log('[riskcoach] OpenAI response received:', {
+      requestId,
+      hasContent: !!raw,
+      contentLength: raw?.length || 0,
+      model: completion.model,
+      usage: completion.usage,
+    });
+
     if (!raw || typeof raw !== 'string') {
       console.error('[riskcoach] empty AI response, requestId:', requestId);
       return NextResponse.json(
-        { error: 'Empty AI response' },
+        { error: 'Empty AI response', requestId },
         { status: 500 }
       );
     }
@@ -144,10 +162,11 @@ Best regards,
     let parsed: Plan | null = null;
     try {
       parsed = JSON.parse(raw) as Plan;
+      console.log('[riskcoach] Successfully parsed JSON response');
     } catch (e) {
       console.error('[riskcoach] JSON parse error:', e, 'raw:', raw.slice(0, 500), 'requestId:', requestId);
       return NextResponse.json(
-        { error: 'AI returned invalid JSON' },
+        { error: 'AI returned invalid JSON', requestId, sample: raw.slice(0, 200) },
         { status: 500 }
       );
     }
@@ -158,17 +177,47 @@ Best regards,
       ? parsed.confidence
       : heuristicScore(reply);
 
-    console.log('[riskcoach] modelUsed:', model, 'requestId:', requestId, 'hasRating:', !!parsed.rating);
+    console.log('[riskcoach] Success:', {
+      modelUsed: model,
+      requestId,
+      hasRating: !!parsed.rating,
+      hasSummary: !!parsed.summary,
+      actionsCount: {
+        '24h': parsed.actions_24h?.length || 0,
+        '7d': parsed.actions_7d?.length || 0,
+        '30d': parsed.actions_30d?.length || 0,
+      },
+    });
 
     return NextResponse.json(
-      { plan: parsed, reply, score, source: 'openai' },
+      {
+        plan: parsed,
+        reply,
+        checklist: parsed.checklist,
+        rating: parsed.rating,
+        score,
+        _source: 'openai',
+        _requestId: requestId,
+      },
       { status: 200 }
     );
 
-  } catch (err) {
-    console.error('[riskcoach] API error:', err);
+  } catch (err: any) {
+    console.error('[riskcoach] API error:', {
+      name: err.name,
+      message: err.message,
+      status: err.status,
+      type: err.type,
+      code: err.code,
+      stack: err.stack?.split('\n').slice(0, 3),
+    });
+
     return NextResponse.json(
-      { error: 'Something went wrong processing your request.' },
+      {
+        error: 'Something went wrong processing your request.',
+        details: err.message || 'Unknown error',
+        type: err.type || err.name,
+      },
       { status: 500 }
     );
   }
@@ -184,4 +233,7 @@ Best regards,
  * curl -s -X POST "https://your-domain.vercel.app/api/riskcoach" \
  *   -H "Content-Type: application/json" \
  *   -d '{"message":"Supplier delay 14 days, we have 10 days of stock, no backup supplier."}' | jq .
+ *
+ * Check debug endpoint:
+ * curl -s "https://your-domain.vercel.app/api/_debug/ping" | jq .
  */
