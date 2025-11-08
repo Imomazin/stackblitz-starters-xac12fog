@@ -21,7 +21,7 @@ import {
   PieChart,
   Pie,
 } from "recharts";
-import { Plus, Play, Trash2, TrendingUp, TrendingDown, AlertTriangle, Activity, Network, Brain } from "lucide-react";
+import { Plus, Play, Trash2, TrendingUp, TrendingDown, AlertTriangle, Activity, Network, Brain, MessageSquare, Send, Sparkles } from "lucide-react";
 import type {
   ScenarioVariable,
   DistName,
@@ -35,10 +35,12 @@ import type {
 
 export default function Page() {
   const activeTab = useUiStore((s) => s.activeTab);
+  const [showAIChat, setShowAIChat] = useState(false);
 
   return (
-    <div className="max-w-[1800px] mx-auto px-6 py-8">
-      {activeTab === "dashboard" && <DashboardTab />}
+    <>
+      <div className="max-w-[1800px] mx-auto px-6 py-8">
+        {activeTab === "dashboard" && <DashboardTab />}
       {activeTab === "monte-carlo" && <MonteCarloTab />}
       {activeTab === "scenario-studio" && <ScenarioStudioTab />}
       {activeTab === "register" && <RiskRegisterTab />}
@@ -67,6 +69,130 @@ export default function Page() {
       {activeTab === "reports" && <PlaceholderTab title="Reports & Export" subtitle="PDF, CSV, JSON exports with print CSS" />}
       {activeTab === "settings" && <PlaceholderTab title="Settings" subtitle="Platform configuration and preferences" />}
       {activeTab === "compliance" && <PlaceholderTab title="Compliance & Regulatory" subtitle="Framework mapping (SOX, GDPR, ISO 27001, Basel III)" />}
+      </div>
+
+      {/* AI Chat Assistant - Floating Widget */}
+      <AIChat showChat={showAIChat} setShowChat={setShowAIChat} />
+    </>
+  );
+}
+
+// ============================================================================
+// AI CHAT ASSISTANT COMPONENT
+// ============================================================================
+function AIChat({ showChat, setShowChat }: { showChat: boolean; setShowChat: (show: boolean) => void }) {
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; content: string }[]>([
+    { role: 'ai', content: 'Hi! I\'m your AI Risk Advisor. Ask me anything about risk management, simulations, or how to use this platform!' }
+  ]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userMessage = input;
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setInput('');
+    setLoading(true);
+
+    try {
+      // Simple AI response (you can enhance this to call your AI API)
+      const aiResponse = await getAIResponse(userMessage);
+      setMessages(prev => [...prev, { role: 'ai', content: aiResponse }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'ai', content: 'Sorry, I encountered an error. Please try again.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAIResponse = async (question: string): Promise<string> => {
+    // Knowledge base for common questions
+    const lowerQ = question.toLowerCase();
+
+    if (lowerQ.includes('how') && (lowerQ.includes('monte carlo') || lowerQ.includes('simulation'))) {
+      return 'To run a Monte Carlo simulation:\n1. Go to "Scenario Studio" tab\n2. Create a scenario with variables and distributions\n3. Go to "Monte Carlo" tab\n4. Click "Run Simulation"\n5. Click "AI Insights" for detailed analysis!';
+    }
+    if (lowerQ.includes('digital twin')) {
+      return 'The Cognitive Digital Twin feature creates a virtual replica of your operations with AI-powered predictive analytics. It monitors sensors in real-time, detects anomalies, and forecasts 30 days ahead using LSTM models!';
+    }
+    if (lowerQ.includes('bow') || lowerQ.includes('tie')) {
+      return 'Bow-Tie Analysis visualizes risks from threats → central event → consequences. It shows preventive controls (before event) and mitigative controls (after event) with effectiveness ratings.';
+    }
+    if (lowerQ.includes('var') || lowerQ.includes('value at risk')) {
+      return 'VaR (Value at Risk) shows the maximum expected loss at a confidence level. VaR 95% means there\'s only a 5% chance losses will exceed that amount. CVaR shows the average loss beyond VaR.';
+    }
+    if (lowerQ.includes('api') || lowerQ.includes('key')) {
+      return 'To enable AI features:\n1. Go to Settings tab\n2. Add your OPENROUTER_API_KEY environment variable\n3. AI will automatically use Claude 3.5 Sonnet for analysis!\n\nWithout an API key, the platform uses local fallback algorithms.';
+    }
+
+    return 'I can help with:\n• Running simulations\n• Understanding risk metrics\n• Explaining platform features\n• Best practices for risk management\n\nWhat would you like to know more about?';
+  };
+
+  if (!showChat) {
+    return (
+      <button
+        onClick={() => setShowChat(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-neo text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-50"
+        title="Ask AI Assistant"
+      >
+        <Sparkles className="w-6 h-6" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-surface border-2 border-primary/30 rounded-lg shadow-2xl flex flex-col z-50">
+      {/* Header */}
+      <div className="bg-gradient-neo text-white p-4 rounded-t-lg flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Brain className="w-5 h-5" />
+          <span className="font-bold">AI Risk Advisor</span>
+        </div>
+        <button onClick={() => setShowChat(false)} className="hover:bg-white/20 rounded p-1">
+          ✕
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-3 rounded-lg ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-surface-secondary text-text'}`}>
+              <div className="text-sm whitespace-pre-line">{msg.content}</div>
+            </div>
+          </div>
+        ))}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="bg-surface-secondary p-3 rounded-lg">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="p-4 border-t border-border">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Ask me anything..."
+            className="input flex-1 text-sm"
+            disabled={loading}
+          />
+          <button onClick={handleSend} disabled={loading || !input.trim()} className="btn-primary p-2">
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -181,13 +307,15 @@ function DashboardTab() {
 }
 
 // ============================================================================
-// MONTE CARLO TAB (Existing)
+// MONTE CARLO TAB (AI-Enhanced)
 // ============================================================================
 function MonteCarloTab() {
   const scenarios = useScenarioStore((s) => s.scenarios);
   const activeScenarioId = useScenarioStore((s) => s.activeScenarioId);
   const runs = useRunsStore((s) => s.runs);
   const addRun = useRunsStore((s) => s.addRun);
+  const [aiInsights, setAiInsights] = useState<{ summary: string; actions: string[]; timeline: string; source: string } | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const activeScenario = scenarios.find((s) => s.id === activeScenarioId) || scenarios[0];
   const activeRun = runs.find((r) => r.summary.scenarioId === activeScenario?.id);
@@ -198,6 +326,38 @@ function MonteCarloTab() {
     addRun(result);
   };
 
+  const generateAIInsights = async () => {
+    if (!activeScenario || !activeRun) return;
+
+    setLoadingAI(true);
+    try {
+      const simulationSummary = `Mean: ${activeRun.summary.mean.toFixed(2)}, P50: ${activeRun.summary.p50.toFixed(2)}, P95: ${activeRun.summary.p95.toFixed(2)}, Std Dev: ${activeRun.summary.stdev.toFixed(2)}`;
+
+      const response = await fetch('/api/ai/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scenarioTitle: activeScenario.title,
+          variables: activeScenario.variables,
+          timeHorizonDays: activeScenario.horizonDays,
+          simulationSummary,
+        }),
+      });
+
+      const data = await response.json();
+      setAiInsights({
+        summary: data.summary || '',
+        actions: data.actions || [],
+        timeline: data.timeline || '',
+        source: data._source || 'ai',
+      });
+    } catch (error) {
+      console.error('AI insights error:', error);
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -205,10 +365,18 @@ function MonteCarloTab() {
           <h2 className="text-2xl font-bold text-gradient">Monte Carlo Simulation</h2>
           <p className="text-textMute">Run probabilistic simulations and analyze results</p>
         </div>
-        <button onClick={handleRun} disabled={!activeScenario} className="btn-primary flex items-center gap-2">
-          <Play className="w-4 h-4" />
-          Run Simulation
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleRun} disabled={!activeScenario} className="btn-primary flex items-center gap-2">
+            <Play className="w-4 h-4" />
+            Run Simulation
+          </button>
+          {activeRun && (
+            <button onClick={generateAIInsights} disabled={loadingAI} className="btn-secondary flex items-center gap-2">
+              <Brain className="w-4 h-4" />
+              {loadingAI ? 'Analyzing...' : 'AI Insights'}
+            </button>
+          )}
+        </div>
       </div>
 
       {activeScenario && (
@@ -273,6 +441,48 @@ function MonteCarloTab() {
       ) : (
         <div className="card h-96 flex items-center justify-center text-textMute">
           Click &quot;Run Simulation&quot; to see results
+        </div>
+      )}
+
+      {/* AI Insights Panel */}
+      {aiInsights && (
+        <div className="card bg-gradient-to-br from-primary/5 to-secondary/5 border-2 border-primary/30">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Brain className="w-5 h-5 text-primary" />
+              AI-Powered Risk Analysis
+            </h3>
+            <span className="text-xs px-2 py-1 rounded bg-primary/20 text-primary font-bold">
+              {aiInsights.source === 'ai' ? '🤖 Claude AI' : '⚡ Local'}
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {/* Executive Summary */}
+            <div>
+              <div className="text-sm font-semibold text-textMute mb-2">📊 Executive Summary</div>
+              <div className="text-sm whitespace-pre-line bg-surface/50 p-3 rounded">{aiInsights.summary}</div>
+            </div>
+
+            {/* Key Actions */}
+            <div>
+              <div className="text-sm font-semibold text-textMute mb-2">✅ Recommended Actions</div>
+              <div className="space-y-2">
+                {aiInsights.actions.map((action, idx) => (
+                  <div key={idx} className="flex gap-2 items-start bg-surface/50 p-2 rounded">
+                    <span className="text-xs font-bold text-primary mt-0.5">{idx + 1}.</span>
+                    <span className="text-sm flex-1">{action}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div>
+              <div className="text-sm font-semibold text-textMute mb-2">⏱️ Implementation Timeline</div>
+              <div className="text-sm bg-surface/50 p-3 rounded">{aiInsights.timeline}</div>
+            </div>
+          </div>
         </div>
       )}
     </div>
