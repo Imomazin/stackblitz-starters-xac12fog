@@ -86,6 +86,25 @@ export type AiPlan = {
   provider: "openrouter" | "local";
 };
 
+// API request/response types for AI plan generation
+export type AIPlanRequest = {
+  scenarioTitle: string;
+  scenarioDescription?: string;
+  variables: ScenarioVariable[];
+  timeHorizonDays: number;
+  simulationSummary?: string;
+};
+
+export type AIPlanResponse = {
+  summary: string;
+  actions: string[];
+  timeline: string;
+  confidence?: number;
+  _source: "ai" | "local";
+  _model?: string;
+  _requestId?: string;
+};
+
 export type StressScenario = {
   id: string;
   title: string;
