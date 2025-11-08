@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { useUiStore } from "./store/ui";
 import { useScenarioStore } from "./store/scenario";
 import { useRunsStore } from "./store/runs";
@@ -21,7 +22,7 @@ import {
   PieChart,
   Pie,
 } from "recharts";
-import { Plus, Play, Trash2, TrendingUp, TrendingDown, AlertTriangle, Activity, Network, Brain, MessageSquare, Send, Sparkles } from "lucide-react";
+import { Plus, Play, Trash2, TrendingUp, TrendingDown, AlertTriangle, Activity, Network, Brain, MessageSquare, Send, Sparkles, Shield, Target, FileBarChart, Gauge, Upload, Users, Zap, Database, BarChart3, GitBranch, Lock } from "lucide-react";
 import type {
   ScenarioVariable,
   DistName,
@@ -108,26 +109,61 @@ function AIChat({ showChat, setShowChat }: { showChat: boolean; setShowChat: (sh
   };
 
   const getAIResponse = async (question: string): Promise<string> => {
-    // Knowledge base for common questions
-    const lowerQ = question.toLowerCase();
+    // Enhanced AI knowledge base with better matching
+    const lowerQ = question.toLowerCase().trim();
 
-    if (lowerQ.includes('how') && (lowerQ.includes('monte carlo') || lowerQ.includes('simulation'))) {
-      return 'To run a Monte Carlo simulation:\n1. Go to "Scenario Studio" tab\n2. Create a scenario with variables and distributions\n3. Go to "Monte Carlo" tab\n4. Click "Run Simulation"\n5. Click "AI Insights" for detailed analysis!';
+    // Greetings
+    if (/^(hi|hello|hey|greetings|good\s+(morning|afternoon|evening))/.test(lowerQ)) {
+      return '👋 Hello! I\'m your AI Risk Advisor. I can help you with:\n\n• Running Monte Carlo simulations\n• Understanding risk metrics (VaR, CVaR, etc.)\n• Navigating the 29 enterprise modules\n• Best practices for risk management\n• Digital twins and AI features\n\nWhat specific topic interests you?';
     }
-    if (lowerQ.includes('digital twin')) {
-      return 'The Cognitive Digital Twin feature creates a virtual replica of your operations with AI-powered predictive analytics. It monitors sensors in real-time, detects anomalies, and forecasts 30 days ahead using LSTM models!';
+
+    // Simulations and Monte Carlo
+    if (lowerQ.includes('simulation') || lowerQ.includes('monte carlo') || lowerQ.includes('run')) {
+      return '🎲 **Running Simulations:**\n\n1. Navigate to **"Scenario Studio"** tab\n2. Click "Add Scenario" and define your risk variables\n3. Choose distributions (triangular, normal, PERT, lognormal)\n4. Go to **"Monte Carlo"** tab\n5. Select your scenario and click **"Run Simulation"**\n6. Analyze results and click **"AI Insights"** for detailed recommendations\n\n💡 Tip: Start with 10,000 runs for quick results!';
     }
+
+    // Risk metrics
+    if (lowerQ.includes('metric') || lowerQ.includes('measure') || lowerQ.includes('understand risk')) {
+      return '📊 **Key Risk Metrics:**\n\n• **VaR (Value at Risk)**: Maximum expected loss at confidence level (e.g., 95%)\n• **CVaR (Conditional VaR)**: Average loss beyond VaR threshold\n• **P90/P95/P99**: 90th, 95th, 99th percentile values\n• **Standard Deviation**: Measure of variability\n• **Correlation**: How risks move together\n\nWhich metric would you like to explore further?';
+    }
+
+    // Digital twins
+    if (lowerQ.includes('digital twin') || lowerQ.includes('twin')) {
+      return '🤖 **Cognitive Digital Twins:**\n\nCreate virtual replicas of your operations with:\n• Real-time sensor monitoring\n• AI anomaly detection\n• 30-day LSTM forecasting\n• Predictive maintenance alerts\n\nGo to **"Digital Twin"** tab to set up your first twin!';
+    }
+
+    // Portfolio & VaR
+    if (lowerQ.includes('var') || lowerQ.includes('value at risk') || lowerQ.includes('portfolio')) {
+      return '📈 **Portfolio Risk Analytics:**\n\n**VaR (Value at Risk)**: The maximum loss at a given confidence level.\n• VaR 95% = Only 5% chance of exceeding this loss\n• VaR 99% = Only 1% chance of exceeding this loss\n\n**CVaR**: Average loss when VaR is exceeded\n\n**Diversification Benefit**: Risk reduction from portfolio effects\n\nVisit the **"Portfolio"** tab for full analysis!';
+    }
+
+    // Bow-Tie
     if (lowerQ.includes('bow') || lowerQ.includes('tie')) {
-      return 'Bow-Tie Analysis visualizes risks from threats → central event → consequences. It shows preventive controls (before event) and mitigative controls (after event) with effectiveness ratings.';
-    }
-    if (lowerQ.includes('var') || lowerQ.includes('value at risk')) {
-      return 'VaR (Value at Risk) shows the maximum expected loss at a confidence level. VaR 95% means there\'s only a 5% chance losses will exceed that amount. CVaR shows the average loss beyond VaR.';
-    }
-    if (lowerQ.includes('api') || lowerQ.includes('key')) {
-      return 'To enable AI features:\n1. Go to Settings tab\n2. Add your OPENROUTER_API_KEY environment variable\n3. AI will automatically use Claude 3.5 Sonnet for analysis!\n\nWithout an API key, the platform uses local fallback algorithms.';
+      return '🎯 **Bow-Tie Analysis:**\n\nVisualizes the complete risk chain:\n\n**Threats** → Preventive Controls → **Central Event** → Mitigative Controls → **Consequences**\n\nUse it to:\n• Map cause-consequence relationships\n• Assess control effectiveness\n• Identify gaps in defenses\n\nCheck the **"Bow-Tie"** tab!';
     }
 
-    return 'I can help with:\n• Running simulations\n• Understanding risk metrics\n• Explaining platform features\n• Best practices for risk management\n\nWhat would you like to know more about?';
+    // FMEA
+    if (lowerQ.includes('fmea') || lowerQ.includes('failure mode')) {
+      return '⚠️ **FMEA (Failure Mode & Effects Analysis):**\n\nSystematic method to identify potential failures:\n• Severity (1-10)\n• Occurrence (1-10)\n• Detection (1-10)\n• RPN = S × O × D\n\nHigher RPN = Higher priority to address!';
+    }
+
+    // Platform features/navigation
+    if (lowerQ.includes('feature') || lowerQ.includes('platform') || lowerQ.includes('module') || lowerQ.includes('tab')) {
+      return '✨ **R_LUMINA Platform Features:**\n\n29 enterprise modules including:\n• Core: Dashboard, Monte Carlo, Scenarios, Risk Register\n• Advanced: Digital Twins, Portfolio, Bayesian Networks\n• Specialized: Cyber Risk, Climate Risk, Supply Chain\n• AI: Playbooks, Forecasting, Agent-Based Models\n\nClick any tab in the navigation to explore!';
+    }
+
+    // API/Settings
+    if (lowerQ.includes('api') || lowerQ.includes('key') || lowerQ.includes('setting')) {
+      return '🔑 **AI Configuration:**\n\n1. Go to **Settings** tab\n2. Add `OPENROUTER_API_KEY` environment variable\n3. AI features will use Claude 3.5 Sonnet\n\nWithout an API key, the platform uses smart fallback algorithms!';
+    }
+
+    // Best practices
+    if (lowerQ.includes('best practice') || lowerQ.includes('recommend') || lowerQ.includes('tip')) {
+      return '💡 **Risk Management Best Practices:**\n\n1. **Start simple**: Begin with 3-4 key variables\n2. **Use appropriate distributions**: Triangular for estimates, Normal for measured data\n3. **Run 10k+ simulations**: More runs = more reliable results\n4. **Validate assumptions**: Review AI insights critically\n5. **Monitor KRIs**: Track leading indicators\n6. **Document scenarios**: Use version control\n\nWhat area would you like to dive deeper into?';
+    }
+
+    // Default fallback with context
+    return '🤔 I\'m here to help! I can assist with:\n\n• **Simulations**: How to run Monte Carlo analysis\n• **Risk Metrics**: VaR, CVaR, distributions\n• **Platform Features**: Navigate 29 modules\n• **Best Practices**: Risk management tips\n• **Digital Twins**: AI-powered monitoring\n\nCould you be more specific about what you\'d like to learn?';
   };
 
   if (!showChat) {
@@ -273,50 +309,142 @@ function CoverPage() {
   };
 
   return (
-    <div className="space-y-0 -mt-8 -mx-6">
-      {/* Hero Section with Animated Backgrounds */}
-      <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-surface to-background">
-        {/* Animated Background Blobs */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-20 left-20 w-64 h-64 bg-primary rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-secondary rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-accent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+    <div className="space-y-0 -mt-8 -mx-6 overflow-hidden">
+      {/* Hero Section with Enhanced Animations */}
+      <section className="relative min-h-[700px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-surface to-background">
+        {/* Dynamic Animated Background with Color Flashes */}
+        <div className="absolute inset-0">
+          <motion.div
+            className="absolute top-20 left-20 w-64 h-64 bg-primary rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+              x: [0, 50, 0],
+              y: [0, 30, 0],
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute bottom-20 right-20 w-96 h-96 bg-secondary rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.2, 0.4, 0.2],
+              x: [0, -40, 0],
+              y: [0, -20, 0],
+            }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          />
+          <motion.div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-accent rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.4, 1],
+              opacity: [0.25, 0.45, 0.25],
+              rotate: [0, 180, 360],
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          />
+          {/* Color flash effects */}
+          <motion.div
+            className="absolute top-0 right-1/4 w-48 h-48 bg-green-500/20 rounded-full blur-2xl"
+            animate={{
+              opacity: [0, 0.6, 0],
+              scale: [0.8, 1.5, 0.8],
+            }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+          />
+          <motion.div
+            className="absolute bottom-1/4 left-1/4 w-56 h-56 bg-blue-500/20 rounded-full blur-2xl"
+            animate={{
+              opacity: [0, 0.5, 0],
+              scale: [1, 1.6, 1],
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 4 }}
+          />
         </div>
 
-        {/* Hero Content */}
-        <div className="relative z-10 text-center px-6 py-16">
-          <div className="mb-6">
-            <div className="inline-block p-3 bg-gradient-neo rounded-2xl shadow-glow mb-4">
-              <TrendingUp className="w-12 h-12 text-white" />
+        {/* Hero Content with Scroll Animations */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="relative z-10 text-center px-6 py-16"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5, type: "spring" }}
+            className="mb-6"
+          >
+            <div className="inline-block p-4 bg-gradient-neo rounded-2xl shadow-glow mb-4">
+              <Shield className="w-14 h-14 text-white" />
             </div>
-          </div>
+          </motion.div>
 
-          <h1 className="text-6xl md:text-7xl font-bold mb-6 text-gradient">
-            LUMINA RISK
-          </h1>
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-6xl md:text-8xl font-bold mb-4 text-gradient"
+          >
+            R_LUMINA
+          </motion.h1>
 
-          <p className="text-2xl text-textMute mb-4">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="text-xl text-primary/90 font-bold mb-6 tracking-wider"
+          >
+            RLum
+          </motion.p>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="text-3xl text-textMute mb-6"
+          >
             Illuminate Your Risk Landscape with AI-Powered Precision
-          </p>
+          </motion.p>
 
-          <p className="text-lg text-textMute/80 mb-12 max-w-3xl mx-auto">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="text-lg text-textMute/80 mb-12 max-w-3xl mx-auto leading-relaxed"
+          >
             The world&apos;s most comprehensive enterprise risk management platform.
             29 advanced modules. Real-time AI insights. Digital twins. Monte Carlo simulations.
             All in one beautiful interface.
-          </p>
+          </motion.p>
 
-          {/* CTA Buttons */}
-          <div className="flex gap-4 justify-center flex-wrap">
-            <button onClick={() => setActiveTab('dashboard')} className="btn-primary text-lg px-8 py-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
+          {/* CTA Buttons with Hover Animations */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="flex gap-4 justify-center flex-wrap"
+          >
+            <motion.button
+              onClick={() => setActiveTab('dashboard')}
+              whileHover={{ scale: 1.05, boxShadow: "0 10px 40px rgba(var(--primary-rgb), 0.4)" }}
+              whileTap={{ scale: 0.95 }}
+              className="btn-primary text-lg px-10 py-5 flex items-center gap-3 rounded-xl font-semibold"
+            >
+              <BarChart3 className="w-6 h-6" />
               View Dashboards
-            </button>
-            <button onClick={loadSampleData} className="btn-secondary text-lg px-8 py-4 flex items-center gap-2">
-              <Play className="w-5 h-5" />
+            </motion.button>
+            <motion.button
+              onClick={loadSampleData}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="btn-secondary text-lg px-10 py-5 flex items-center gap-3 rounded-xl font-semibold"
+            >
+              <Zap className="w-6 h-6" />
               Load Sample Data
-            </button>
-          </div>
-        </div>
+            </motion.button>
+          </motion.div>
+        </motion.div>
       </section>
 
       {/* Stats Bar */}
@@ -343,85 +471,170 @@ function CoverPage() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-16 px-6 bg-background">
+      {/* Features Grid with Professional Icons */}
+      <section className="py-20 px-6 bg-gradient-to-b from-background to-surface/30">
         <div className="max-w-[1400px] mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4">Enterprise Risk Intelligence</h2>
-          <p className="text-center text-textMute mb-12 max-w-2xl mx-auto">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-4xl font-bold text-center mb-4"
+          >
+            Enterprise Risk Intelligence
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center text-textMute mb-16 max-w-2xl mx-auto text-lg"
+          >
             Comprehensive suite of advanced analytics, AI-powered insights, and industry-specific risk modules
-          </p>
+          </motion.p>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Feature Cards */}
-            <div onClick={() => setActiveTab('monte-carlo')} className="card hover:shadow-glow transition-all cursor-pointer group">
-              <div className="text-4xl mb-4">🎲</div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">AI Risk Analysis</h3>
-              <p className="text-sm text-textMute">
-                Run Monte Carlo simulations with AI-powered strategic insights and action plans
-              </p>
-            </div>
-
-            <div onClick={() => setActiveTab('cognitive-twin')} className="card hover:shadow-glow transition-all cursor-pointer group">
-              <div className="text-4xl mb-4">🤖</div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Digital Twins</h3>
-              <p className="text-sm text-textMute">
-                Cognitive digital twins with real-time sensor data and predictive AI models
-              </p>
-            </div>
-
-            <div onClick={() => setActiveTab('portfolio')} className="card hover:shadow-glow transition-all cursor-pointer group">
-              <div className="text-4xl mb-4">📊</div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Portfolio Analytics</h3>
-              <p className="text-sm text-textMute">
-                VaR/CVaR, correlation analysis, and diversification benefit metrics
-              </p>
-            </div>
-
-            <div onClick={() => setActiveTab('bow-tie')} className="card hover:shadow-glow transition-all cursor-pointer group">
-              <div className="text-4xl mb-4">🎯</div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Bow-Tie Analysis</h3>
-              <p className="text-sm text-textMute">
-                Visual cause-consequence mapping with prevention and mitigation controls
-              </p>
-            </div>
-
-            <div onClick={() => setActiveTab('risk-appetite')} className="card hover:shadow-glow transition-all cursor-pointer group">
-              <div className="text-4xl mb-4">🎚️</div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Risk Appetite</h3>
-              <p className="text-sm text-textMute">
-                Define and monitor risk tolerance across financial, operational, and strategic domains
-              </p>
-            </div>
-
-            <div onClick={() => setActiveTab('fmea')} className="card hover:shadow-glow transition-all cursor-pointer group">
-              <div className="text-4xl mb-4">⚠️</div>
-              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">FMEA</h3>
-              <p className="text-sm text-textMute">
-                Failure Mode and Effects Analysis with RPN scoring and criticality assessment
-              </p>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <Zap className="w-10 h-10" />,
+                title: "AI Risk Analysis",
+                description: "Run Monte Carlo simulations with AI-powered strategic insights and action plans",
+                tab: 'monte-carlo',
+                color: "from-purple-500 to-pink-500"
+              },
+              {
+                icon: <Brain className="w-10 h-10" />,
+                title: "Digital Twins",
+                description: "Cognitive digital twins with real-time sensor data and predictive AI models",
+                tab: 'cognitive-twin',
+                color: "from-blue-500 to-cyan-500"
+              },
+              {
+                icon: <FileBarChart className="w-10 h-10" />,
+                title: "Portfolio Analytics",
+                description: "VaR/CVaR, correlation analysis, and diversification benefit metrics",
+                tab: 'portfolio',
+                color: "from-green-500 to-emerald-500"
+              },
+              {
+                icon: <Target className="w-10 h-10" />,
+                title: "Bow-Tie Analysis",
+                description: "Visual cause-consequence mapping with prevention and mitigation controls",
+                tab: 'bow-tie',
+                color: "from-orange-500 to-red-500"
+              },
+              {
+                icon: <Gauge className="w-10 h-10" />,
+                title: "Risk Appetite",
+                description: "Define and monitor risk tolerance across financial, operational, and strategic domains",
+                tab: 'risk-appetite',
+                color: "from-indigo-500 to-purple-500"
+              },
+              {
+                icon: <AlertTriangle className="w-10 h-10" />,
+                title: "FMEA",
+                description: "Failure Mode and Effects Analysis with RPN scoring and criticality assessment",
+                tab: 'fmea',
+                color: "from-yellow-500 to-orange-500"
+              }
+            ].map((feature, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                whileHover={{ y: -8, scale: 1.02 }}
+                onClick={() => setActiveTab(feature.tab as any)}
+                className="card hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
+                <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${feature.color} text-white mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors">
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-textMute leading-relaxed">
+                  {feature.description}
+                </p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Data Upload Section */}
-      <section className="py-16 px-6 bg-surface/30">
+      {/* Trusted By Section with Real People */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        className="py-20 px-6 bg-gradient-to-br from-primary/5 to-secondary/5"
+      >
+        <div className="max-w-[1400px] mx-auto">
+          <h2 className="text-4xl font-bold text-center mb-4">Trusted by Risk Leaders Worldwide</h2>
+          <p className="text-center text-textMute mb-16 text-lg">
+            Join thousands of professionals using R_LUMINA for enterprise risk management
+          </p>
+
+          <div className="grid md:grid-cols-4 gap-8 mb-12">
+            {[
+              { name: "Sarah Chen", role: "Chief Risk Officer", org: "Global Bank Corp", img: "https://i.pravatar.cc/150?img=5" },
+              { name: "Michael Rodriguez", role: "VP Risk Management", org: "Tech Giants Inc", img: "https://i.pravatar.cc/150?img=12" },
+              { name: "Emma Thompson", role: "Risk Analyst", org: "Fortune 500", img: "https://i.pravatar.cc/150?img=9" },
+              { name: "David Kim", role: "Compliance Director", org: "FinTech Leaders", img: "https://i.pravatar.cc/150?img=33" }
+            ].map((person, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: idx * 0.1 }}
+                className="text-center"
+              >
+                <div className="relative inline-block mb-4">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-primary/30 shadow-xl">
+                    <img src={person.img} alt={person.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-neo rounded-full flex items-center justify-center shadow-lg">
+                    <Shield className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+                <h4 className="font-bold text-text">{person.name}</h4>
+                <p className="text-sm text-textMute">{person.role}</p>
+                <p className="text-xs text-textMute/70">{person.org}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Data Upload Section with Professional Icons */}
+      <motion.section
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="py-20 px-6 bg-background"
+      >
         <div className="max-w-[1000px] mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-4">Test the Platform</h2>
-          <p className="text-center text-textMute mb-12">
+          <h2 className="text-4xl font-bold text-center mb-4">Test the Platform</h2>
+          <p className="text-center text-textMute mb-16 text-lg">
             Upload your own risk data or start with our sample dataset to explore all features
           </p>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-8">
             {/* Upload Data */}
-            <div className="card bg-surface/80 backdrop-blur">
-              <div className="text-6xl mb-4">📊</div>
-              <h3 className="text-xl font-bold mb-3">Upload Your Data</h3>
-              <p className="text-sm text-textMute mb-6">
-                Upload CSV or Excel files with your risk variables. We&apos;ll automatically parse and visualize them.
+            <motion.div
+              whileHover={{ scale: 1.02, y: -5 }}
+              className="card bg-surface/80 backdrop-blur border-2 border-transparent hover:border-primary/30 transition-all"
+            >
+              <div className="inline-flex p-6 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white mb-6 shadow-xl">
+                <Upload className="w-12 h-12" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Upload Your Data</h3>
+              <p className="text-sm text-textMute mb-6 leading-relaxed">
+                Upload CSV or Excel files with your risk variables. We&apos;ll automatically parse and visualize them with our intelligent engine.
               </p>
-              <label className="btn-primary cursor-pointer inline-flex items-center gap-2">
-                <Plus className="w-4 h-4" />
+              <label className="btn-primary cursor-pointer inline-flex items-center gap-3 text-base px-6 py-3">
+                <Database className="w-5 h-5" />
                 Choose File
                 <input
                   type="file"
@@ -431,25 +644,36 @@ function CoverPage() {
                 />
               </label>
               {uploadedData && (
-                <p className="mt-3 text-sm text-success">✓ {uploadedData.name}</p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-4 text-sm text-green-500 font-semibold flex items-center gap-2"
+                >
+                  <span className="text-lg">✓</span> {uploadedData.name}
+                </motion.p>
               )}
-            </div>
+            </motion.div>
 
             {/* Sample Data */}
-            <div className="card bg-surface/80 backdrop-blur">
-              <div className="text-6xl mb-4">🎯</div>
-              <h3 className="text-xl font-bold mb-3">Try Sample Data</h3>
-              <p className="text-sm text-textMute mb-6">
-                Load a pre-configured supply chain risk scenario with 4 variables and run instant simulations.
+            <motion.div
+              whileHover={{ scale: 1.02, y: -5 }}
+              className="card bg-surface/80 backdrop-blur border-2 border-transparent hover:border-secondary/30 transition-all"
+            >
+              <div className="inline-flex p-6 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white mb-6 shadow-xl">
+                <Zap className="w-12 h-12" />
+              </div>
+              <h3 className="text-2xl font-bold mb-3">Try Sample Data</h3>
+              <p className="text-sm text-textMute mb-6 leading-relaxed">
+                Load a pre-configured supply chain risk scenario with 4 variables using different probability distributions.
               </p>
-              <button onClick={loadSampleData} className="btn-secondary inline-flex items-center gap-2">
-                <Play className="w-4 h-4" />
+              <button onClick={loadSampleData} className="btn-secondary inline-flex items-center gap-3 text-base px-6 py-3">
+                <Play className="w-5 h-5" />
                 Load Sample Scenario
               </button>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Final CTA */}
       <section className="py-16 px-6 text-center bg-gradient-neo text-white">

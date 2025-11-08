@@ -91,7 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>Lumina Risk - AI-Powered Enterprise Risk Intelligence Platform</title>
+        <title>R_LUMINA (RLum) - AI-Powered Enterprise Risk Intelligence Platform</title>
         <meta
           name="description"
           content="World-class risk management platform with AI insights, Monte Carlo simulations, Digital Twins, and 29 enterprise modules"
@@ -109,9 +109,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gradient">
-                    LUMINA RISK
+                    R_LUMINA
                   </h1>
-                  <p className="text-xs text-textMute">AI-Powered Enterprise Intelligence</p>
+                  <p className="text-xs text-textMute">RLum · AI-Powered Enterprise Intelligence</p>
                 </div>
               </div>
 
@@ -162,7 +162,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-border bg-surface/60 py-4 mt-12">
           <div className="max-w-[1800px] mx-auto px-6 text-center text-sm text-textMute">
             Powered by <strong className="text-text">Ambidexters Inc.</strong>, a subsidiary of{" "}
-            <em className="text-text">Viva La Vida</em>.
+            <span className="text-text">Viva<em>La</em>Vida</span>.
           </div>
         </footer>
       </body>

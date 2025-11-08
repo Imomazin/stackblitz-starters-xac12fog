@@ -223,6 +223,44 @@ export type KeyboardShortcut = {
 };
 
 // ============================================================================
+// AUTHENTICATION & USER MANAGEMENT
+// ============================================================================
+
+export type UserRole =
+  | "admin"           // Full platform access, user management
+  | "risk_manager"    // Create/edit scenarios, full analytics
+  | "risk_analyst"    // Run simulations, limited editing
+  | "executive"       // View-only dashboards and reports
+  | "compliance"      // Focus on regulatory modules
+  | "auditor";        // Read-only access for audits
+
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  department?: string;
+  organization: string;
+  createdAt: number;
+  lastLogin?: number;
+  permissions: {
+    canEditScenarios: boolean;
+    canDeleteScenarios: boolean;
+    canRunSimulations: boolean;
+    canManageUsers: boolean;
+    canViewAllData: boolean;
+    canExportData: boolean;
+    canAccessCompliance: boolean;
+  };
+};
+
+export type AuthSession = {
+  user: User;
+  token: string;
+  expiresAt: number;
+};
+
+// ============================================================================
 // COGNITIVE DIGITAL TWIN
 // ============================================================================
 
