@@ -2,50 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  /* Light theme vars */
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --text: #222222;
-  --text-mute: #6b7280;
-  --border: #00000010;
+@layer base {
+  :root {
+    /* Dark theme (default) - using HSL for better control */
+    --bg: 222 24% 8%;
+    --surface: 222 20% 12%;
+    --text: 210 20% 98%;
+    --text-mute: 210 10% 65%;
+    --border: 222 20% 20%;
 
-  --primary: #5c33f6;    /* deep indigo */
-  --secondary: #00c9a7;  /* modern mint */
-  --highlight: #ff6f61;  /* coral pink */
+    /* Accents - Teal → Violet gradient */
+    --primary: 174 72% 56%;     /* Teal */
+    --secondary: 263 70% 50%;   /* Violet */
+    --accent: 290 80% 60%;      /* Pink */
+    --danger: 0 72% 51%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+  }
+
+  .light {
+    /* Light theme */
+    --bg: 210 20% 98%;
+    --surface: 0 0% 100%;
+    --text: 222 24% 12%;
+    --text-mute: 222 10% 45%;
+    --border: 210 20% 85%;
+
+    /* Accents - Cobalt blue theme */
+    --primary: 217 91% 60%;     /* Cobalt */
+    --secondary: 263 70% 50%;   /* Violet */
+    --accent: 290 80% 60%;
+    --danger: 0 72% 51%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-bg text-text font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/30;
+  }
 }
 
-html.dark {
-  /* Dark theme vars */
-  --bg: #0a0a0a;
-  --surface: #121212;
-  --text: #eaeaea;
-  --text-mute: #a3a3a3;
-  --border: #ffffff20;
+@layer components {
+  /* Glass morphism effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
 
-  --primary: #7b3fe4;    /* electric purple */
-  --secondary: #00f5d4;  /* neon teal */
-  --highlight: #ff2e8e;  /* magenta glow */
+  /* Card component */
+  .card {
+    @apply rounded-2xl border bg-surface p-6 shadow-glass;
+  }
+
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-gradient-neo text-white hover:opacity-90 shadow-glow;
+  }
+
+  .btn-secondary {
+    @apply btn border border-border bg-surface hover:bg-border/50;
+  }
+
+  .btn-ghost {
+    @apply btn hover:bg-surface/50;
+  }
+
+  /* Input fields */
+  .input {
+    @apply flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm placeholder:text-textMute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .textarea {
+    @apply flex min-h-[80px] w-full rounded-md border border-border bg-surface px-3 py-2 text-sm placeholder:text-textMute focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Animated gradient background */
+  .bg-drift {
+    background-image: radial-gradient(1200px 600px at 0% 0%, hsl(var(--primary) / 0.1), transparent 60%),
+                      radial-gradient(1000px 800px at 100% 100%, hsl(var(--secondary) / 0.12), transparent 60%);
+    background-size: 200% 200%;
+  }
+
+  /* Shimmer effect */
+  .shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+    background-size: 200% 100%;
+  }
 }
 
-html, body, #__next {
-  height: 100%;
-}
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-neo bg-clip-text text-transparent;
+  }
 
-body {
-  @apply bg-bg text-text font-sans antialiased;
-}
-
-/* Animated gradient behind the app */
-.bg-drift {
-  background-image: radial-gradient(1200px 600px at 0% 0%, var(--primary)10%, transparent 60%),
-                    radial-gradient(1000px 800px at 100% 100%, var(--secondary)12%, transparent 60%),
-                    linear-gradient(180deg, transparent, transparent 60%);
-  background-size: 200% 200%;
-}
-
-/* Shimmer utility for loading placeholders */
-.shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
-  background-size: 200% 100%;
+  .animate-stagger {
+    animation-delay: calc(var(--stagger-delay, 0) * 100ms);
+  }
 }
