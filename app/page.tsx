@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Play, Plus, Trash2, BarChart3, AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { useUiStore } from "./store/ui";
+import { useScenarioStore } from "./store/scenario";
+import { useRunsStore } from "./store/runs";
+import { useRegisterStore } from "./store/register";
+import { runMonteCarloSync } from "@/lib/montecarlo";
 import {
   BarChart,
   Bar,
@@ -10,114 +13,167 @@ import {
   Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  AreaChart,
+  Area,
+  Cell,
+  PieChart,
+  Pie,
 } from "recharts";
+import { Plus, Play, Trash2, TrendingUp, TrendingDown, AlertTriangle, Activity, Network, Brain } from "lucide-react";
+import type {
+  ScenarioVariable,
+  DistName,
+  DigitalTwin,
+  Portfolio,
+  BowTie,
+  FMEA,
+  KRI,
+  RiskAppetite,
+} from "./types";
 
-import { useUiStore } from "./store/ui";
-import { useScenarioStore } from "./store/scenario";
-import { useRunsStore } from "./store/runs";
-import { useRegisterStore } from "./store/register";
-import { runMonteCarloSync } from "@/lib/montecarlo";
-import type { ScenarioConfig, ScenarioVariable, RiskItem } from "./types";
-
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
-
-// ============================================================================
-// Dashboard Tab
-// ============================================================================
-function DashboardTab() {
-  const runs = useRunsStore((s) => s.runs);
-  const scenarios = useScenarioStore((s) => s.scenarios);
-  const risks = useRegisterStore((s) => s.risks);
-
-  const latestRun = runs[0];
+export default function Page() {
+  const activeTab = useUiStore((s) => s.activeTab);
 
   return (
     <div className="max-w-[1800px] mx-auto px-6 py-8">
-      <h2 className="text-2xl font-bold mb-6">Executive Dashboard</h2>
+      {activeTab === "dashboard" && <DashboardTab />}
+      {activeTab === "monte-carlo" && <MonteCarloTab />}
+      {activeTab === "scenario-studio" && <ScenarioStudioTab />}
+      {activeTab === "register" && <RiskRegisterTab />}
+      {activeTab === "cognitive-twin" && <CognitiveTwinTab />}
+      {activeTab === "portfolio" && <PortfolioTab />}
+      {activeTab === "bow-tie" && <BowTieTab />}
+      {activeTab === "fmea" && <FMEATab />}
+      {activeTab === "network" && <NetworkTab />}
+      {activeTab === "bayesian" && <BayesianTab />}
+      {activeTab === "kri" && <KRITab />}
+      {activeTab === "risk-appetite" && <RiskAppetiteTab />}
+      {activeTab === "forecasting" && <PlaceholderTab title="Time-Series Forecasting" subtitle="ARIMA, Prophet, and LSTM predictive models" />}
+      {activeTab === "cyber-risk" && <PlaceholderTab title="Cyber Risk (FAIR)" subtitle="Factor Analysis of Information Risk framework" />}
+      {activeTab === "climate-risk" && <PlaceholderTab title="Climate Risk (TCFD)" subtitle="Physical and transition risks aligned with TCFD framework" />}
+      {activeTab === "supply-chain" && <PlaceholderTab title="Supply Chain Network" subtitle="Disruption simulation and resilience analysis" />}
+      {activeTab === "esg" && <PlaceholderTab title="ESG Risk Metrics" subtitle="Environmental, Social, and Governance indicators" />}
+      {activeTab === "third-party" && <PlaceholderTab title="Third-Party Risk" subtitle="Vendor assessment and monitoring" />}
+      {activeTab === "risk-transfer" && <PlaceholderTab title="Risk Transfer & Insurance" subtitle="Insurance optimization and coverage analysis" />}
+      {activeTab === "agent-based" && <PlaceholderTab title="Agent-Based Modeling" subtitle="Multi-agent simulation for emergent behaviors" />}
+      {activeTab === "system-dynamics" && <PlaceholderTab title="System Dynamics" subtitle="Stock-flow modeling with feedback loops" />}
+      {activeTab === "what-if" && <PlaceholderTab title="What-If Analysis" subtitle="Interactive scenario exploration" />}
+      {activeTab === "stress-lab" && <PlaceholderTab title="Stress Lab" subtitle="Macro shocks and regime switching" />}
+      {activeTab === "playbooks" && <PlaceholderTab title="AI Playbooks" subtitle="Automated risk response recommendations" />}
+      {activeTab === "templates" && <PlaceholderTab title="Scenario Templates" subtitle="Pre-built scenarios for common risks" />}
+      {activeTab === "history" && <PlaceholderTab title="Simulation History" subtitle="Compare past runs and track changes" />}
+      {activeTab === "reports" && <PlaceholderTab title="Reports & Export" subtitle="PDF, CSV, JSON exports with print CSS" />}
+      {activeTab === "settings" && <PlaceholderTab title="Settings" subtitle="Platform configuration and preferences" />}
+      {activeTab === "compliance" && <PlaceholderTab title="Compliance & Regulatory" subtitle="Framework mapping (SOX, GDPR, ISO 27001, Basel III)" />}
+    </div>
+  );
+}
+
+// ============================================================================
+// DASHBOARD TAB (Enhanced)
+// ============================================================================
+function DashboardTab() {
+  const scenarios = useScenarioStore((s) => s.scenarios);
+  const runs = useRunsStore((s) => s.runs);
+  const risks = useRegisterStore((s) => s.risks);
+  const latestRun = runs[0];
+
+  const totalScenarios = scenarios.length;
+  const totalRuns = runs.length;
+  const avgRiskScore = risks.length > 0 ? (risks.reduce((sum, r) => sum + r.likelihood * r.impact, 0) / risks.length).toFixed(1) : "0.0";
+  const highRisks = risks.filter((r) => r.likelihood * r.impact >= 15).length;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient mb-2">Enterprise Risk Dashboard</h2>
+        <p className="text-textMute">Real-time overview of your risk landscape</p>
+      </div>
 
       {/* KPI Tiles */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-4">
         <div className="card">
           <div className="text-sm text-textMute">Total Scenarios</div>
-          <div className="text-3xl font-bold mt-2">{scenarios.length}</div>
+          <div className="text-3xl font-bold text-primary mt-1">{totalScenarios}</div>
+          <div className="text-xs text-success mt-1">Active simulations</div>
         </div>
         <div className="card">
-          <div className="text-sm text-textMute">Simulations Run</div>
-          <div className="text-3xl font-bold mt-2">{runs.length}</div>
+          <div className="text-sm text-textMute">Simulation Runs</div>
+          <div className="text-3xl font-bold text-secondary mt-1">{totalRuns}</div>
+          <div className="text-xs text-textMute mt-1">Completed analyses</div>
         </div>
         <div className="card">
-          <div className="text-sm text-textMute">Open Risks</div>
-          <div className="text-3xl font-bold mt-2">
-            {risks.filter((r) => r.status === "open").length}
-          </div>
+          <div className="text-sm text-textMute">Avg Risk Score</div>
+          <div className="text-3xl font-bold text-warning mt-1">{avgRiskScore}</div>
+          <div className="text-xs text-textMute mt-1">Likelihood × Impact</div>
         </div>
         <div className="card">
-          <div className="text-sm text-textMute">Avg P90</div>
-          <div className="text-3xl font-bold mt-2">
-            {latestRun ? latestRun.summary.p90.toFixed(1) : "—"}
-          </div>
+          <div className="text-sm text-textMute">High Risks</div>
+          <div className="text-3xl font-bold text-danger mt-1">{highRisks}</div>
+          <div className="text-xs text-textMute mt-1">Score ≥ 15</div>
         </div>
       </div>
 
-      {/* Latest Run Summary */}
-      {latestRun && (
+      {/* Latest Simulation */}
+      {latestRun ? (
         <div className="card">
-          <h3 className="font-semibold mb-4">Latest Simulation</h3>
-          <div className="grid grid-cols-2 gap-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-primary" />
+            Latest Simulation Results
+          </h3>
+          <div className="grid grid-cols-3 gap-6">
             <div>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={latestRun.histogram.slice(0, 20)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="bin" stroke="hsl(var(--text-mute))" fontSize={10} />
-                  <YAxis stroke="hsl(var(--text-mute))" fontSize={10} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--surface))",
-                      border: "1px solid hsl(var(--border))",
-                    }}
-                  />
+              <div className="text-sm text-textMute mb-2">Distribution Histogram</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={latestRun.histogram}>
+                  <XAxis dataKey="bin" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
                   <Bar dataKey="count" fill="hsl(var(--primary))" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-textMute">Mean:</span>
-                <span className="font-semibold">{latestRun.summary.mean.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-textMute">Std Dev:</span>
-                <span className="font-semibold">{latestRun.summary.stdev.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-textMute">P50:</span>
-                <span className="font-semibold">{latestRun.summary.p50.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-textMute">P90:</span>
-                <span className="font-semibold">{latestRun.summary.p90.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-textMute">Runs:</span>
-                <span className="font-semibold">{latestRun.summary.runs.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-textMute">Duration:</span>
-                <span className="font-semibold">{latestRun.summary.durationMs.toFixed(0)}ms</span>
+            <div>
+              <div className="text-sm text-textMute mb-2">Loss Exceedance Curve</div>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={latestRun.lec}>
+                  <XAxis dataKey="x" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} domain={[0, 1]} />
+                  <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
+                  <Line type="monotone" dataKey="y" stroke="hsl(var(--secondary))" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div>
+              <div className="text-sm text-textMute mb-2">Key Percentiles</div>
+              <div className="space-y-2 mt-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs">P5 (Best Case)</span>
+                  <span className="font-bold text-success">{latestRun.summary.p5.toFixed(1)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs">P50 (Median)</span>
+                  <span className="font-bold text-text">{latestRun.summary.p50.toFixed(1)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs">P95 (Worst Case)</span>
+                  <span className="font-bold text-danger">{latestRun.summary.p95.toFixed(1)}</span>
+                </div>
+                <div className="flex justify-between items-center border-t border-border pt-2 mt-2">
+                  <span className="text-xs">Mean</span>
+                  <span className="font-bold text-primary">{latestRun.summary.mean.toFixed(1)}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {!latestRun && (
-        <div className="card h-64 flex items-center justify-center text-textMute">
-          No simulations run yet. Go to Monte Carlo to run your first simulation.
+      ) : (
+        <div className="card h-64 flex flex-col items-center justify-center text-textMute">
+          <TrendingUp className="w-12 h-12 mb-3 opacity-50" />
+          <p>No simulations run yet</p>
+          <p className="text-xs mt-1">Go to Monte Carlo tab to run your first simulation</p>
         </div>
       )}
     </div>
@@ -125,173 +181,96 @@ function DashboardTab() {
 }
 
 // ============================================================================
-// Monte Carlo Tab
+// MONTE CARLO TAB (Existing)
 // ============================================================================
 function MonteCarloTab() {
-  const activeScenario = useScenarioStore((s) => s.getActiveScenario());
+  const scenarios = useScenarioStore((s) => s.scenarios);
+  const activeScenarioId = useScenarioStore((s) => s.activeScenarioId);
+  const runs = useRunsStore((s) => s.runs);
   const addRun = useRunsStore((s) => s.addRun);
-  const activeRun = useRunsStore((s) => s.getActiveRun());
 
-  const [isRunning, setIsRunning] = useState(false);
+  const activeScenario = scenarios.find((s) => s.id === activeScenarioId) || scenarios[0];
+  const activeRun = runs.find((r) => r.summary.scenarioId === activeScenario?.id);
 
   const handleRun = () => {
     if (!activeScenario) return;
-
-    setIsRunning(true);
-    setTimeout(() => {
-      try {
-        const result = runMonteCarloSync(activeScenario);
-        addRun(result);
-      } catch (error) {
-        console.error("Simulation error:", error);
-      } finally {
-        setIsRunning(false);
-      }
-    }, 100);
+    const result = runMonteCarloSync(activeScenario);
+    addRun(result);
   };
 
-  if (!activeScenario) {
-    return (
-      <div className="max-w-[1800px] mx-auto px-6 py-8">
-        <div className="card h-96 flex flex-col items-center justify-center text-textMute">
-          <BarChart3 className="w-16 h-16 mb-4 opacity-50" />
-          <p>No active scenario. Go to Scenario Studio to create one.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-[1800px] mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">{activeScenario.title}</h2>
-          <p className="text-sm text-textMute">
-            {activeScenario.runs.toLocaleString()} runs • {activeScenario.horizonDays} days
-          </p>
+          <h2 className="text-2xl font-bold text-gradient">Monte Carlo Simulation</h2>
+          <p className="text-textMute">Run probabilistic simulations and analyze results</p>
         </div>
-        <button onClick={handleRun} className="btn-primary gap-2" disabled={isRunning}>
-          {isRunning ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              Running...
-            </>
-          ) : (
-            <>
-              <Play className="w-4 h-4" />
-              Run Simulation
-            </>
-          )}
+        <button onClick={handleRun} disabled={!activeScenario} className="btn-primary flex items-center gap-2">
+          <Play className="w-4 h-4" />
+          Run Simulation
         </button>
       </div>
 
-      {activeRun && (
-        <div className="space-y-6">
-          {/* Metrics */}
-          <div className="grid grid-cols-5 gap-4">
-            {[
-              { label: "P5", value: activeRun.summary.p5 },
-              { label: "P50", value: activeRun.summary.p50 },
-              { label: "P90", value: activeRun.summary.p90 },
-              { label: "Mean", value: activeRun.summary.mean },
-              { label: "Std Dev", value: activeRun.summary.stdev },
-            ].map((metric) => (
-              <div key={metric.label} className="card">
-                <div className="text-sm text-textMute">{metric.label}</div>
-                <div className="text-2xl font-bold mt-1">{metric.value.toFixed(2)}</div>
-              </div>
-            ))}
+      {activeScenario && (
+        <div className="card">
+          <h3 className="font-semibold mb-2">Active Scenario</h3>
+          <p className="text-lg text-primary">{activeScenario.title}</p>
+          <div className="mt-4 grid grid-cols-4 gap-4 text-sm">
+            <div>
+              <span className="text-textMute">Variables:</span> <span className="font-bold">{activeScenario.variables.length}</span>
+            </div>
+            <div>
+              <span className="text-textMute">Runs:</span> <span className="font-bold">{activeScenario.runs.toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-textMute">Horizon:</span> <span className="font-bold">{activeScenario.horizonDays} days</span>
+            </div>
+            <div>
+              <span className="text-textMute">KPI:</span> <span className="font-bold capitalize">{activeScenario.kpi.replace(/_/g, " ")}</span>
+            </div>
           </div>
+        </div>
+      )}
 
-          {/* Distribution Chart */}
+      {activeRun ? (
+        <div className="grid grid-cols-2 gap-6">
           <div className="card">
             <h3 className="font-semibold mb-4">Distribution</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={activeRun.histogram}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="bin"
-                  stroke="hsl(var(--text-mute))"
-                  fontSize={11}
-                  tickFormatter={(v) => v.toFixed(1)}
-                />
-                <YAxis stroke="hsl(var(--text-mute))" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--surface))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
+                <XAxis dataKey="bin" />
+                <YAxis />
+                <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
                 <Bar dataKey="count" fill="hsl(var(--primary))" />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Loss Exceedance Curve */}
           <div className="card">
             <h3 className="font-semibold mb-4">Loss Exceedance Curve</h3>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={300}>
               <LineChart data={activeRun.lec}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="x"
-                  stroke="hsl(var(--text-mute))"
-                  fontSize={11}
-                  tickFormatter={(v) => v.toFixed(1)}
-                />
-                <YAxis
-                  stroke="hsl(var(--text-mute))"
-                  fontSize={11}
-                  tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--surface))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="y"
-                  stroke="hsl(var(--secondary))"
-                  strokeWidth={2}
-                  dot={false}
-                />
+                <XAxis dataKey="x" label={{ value: "Loss", position: "insideBottom", offset: -5 }} />
+                <YAxis label={{ value: "Probability", angle: -90, position: "insideLeft" }} domain={[0, 1]} />
+                <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
+                <Line type="monotone" dataKey="y" stroke="hsl(var(--secondary))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Tornado Chart */}
-          <div className="card">
-            <h3 className="font-semibold mb-4">Sensitivity Analysis</h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={activeRun.tornado} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" stroke="hsl(var(--text-mute))" fontSize={11} />
-                <YAxis
-                  type="category"
-                  dataKey="variable"
-                  stroke="hsl(var(--text-mute))"
-                  fontSize={11}
-                  width={150}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--surface))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="sensitivity" fill="hsl(var(--accent))" />
+          <div className="card col-span-2">
+            <h3 className="font-semibold mb-4">Tornado Chart (Sensitivity Analysis)</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={activeRun.tornado} layout="vertical" margin={{ left: 100 }}>
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="variable" width={90} tick={{ fontSize: 12 }} />
+                <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
+                <Bar dataKey="sensitivity" fill="hsl(var(--warning))" />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
-      )}
-
-      {!activeRun && !isRunning && (
+      ) : (
         <div className="card h-96 flex items-center justify-center text-textMute">
           Click &quot;Run Simulation&quot; to see results
         </div>
@@ -301,360 +280,661 @@ function MonteCarloTab() {
 }
 
 // ============================================================================
-// Scenario Studio Tab
+// SCENARIO STUDIO TAB (Existing)
 // ============================================================================
 function ScenarioStudioTab() {
-  const activeScenario = useScenarioStore((s) => s.getActiveScenario());
+  const scenarios = useScenarioStore((s) => s.scenarios);
+  const activeScenarioId = useScenarioStore((s) => s.activeScenarioId);
   const updateScenario = useScenarioStore((s) => s.updateScenario);
-  const addScenario = useScenarioStore((s) => s.addScenario);
 
-  const handleAddVariable = () => {
+  const activeScenario = scenarios.find((s) => s.id === activeScenarioId) || scenarios[0];
+
+  const addVariable = () => {
     if (!activeScenario) return;
-
     const newVar: ScenarioVariable = {
-      id: generateId(),
-      name: `Variable ${activeScenario.variables.length + 1}`,
+      id: `var_${Date.now()}`,
+      name: "New Variable",
       dist: "triangular",
       min: 0,
       mode: 50,
       max: 100,
+      unit: "",
     };
-
-    updateScenario(activeScenario.id, {
-      variables: [...activeScenario.variables, newVar],
-    });
+    updateScenario(activeScenario.id, { variables: [...activeScenario.variables, newVar] });
   };
 
-  const handleDeleteVariable = (id: string) => {
+  const removeVariable = (varId: string) => {
     if (!activeScenario) return;
     updateScenario(activeScenario.id, {
-      variables: activeScenario.variables.filter((v) => v.id !== id),
+      variables: activeScenario.variables.filter((v) => v.id !== varId),
     });
   };
 
-  const handleUpdateVariable = (id: string, updates: Partial<ScenarioVariable>) => {
+  const updateVariable = (varId: string, updates: Partial<ScenarioVariable>) => {
     if (!activeScenario) return;
     updateScenario(activeScenario.id, {
-      variables: activeScenario.variables.map((v) => (v.id === id ? { ...v, ...updates } : v)),
+      variables: activeScenario.variables.map((v) => (v.id === varId ? { ...v, ...updates } : v)),
     });
   };
-
-  const handleCreateNew = () => {
-    const newScenario: ScenarioConfig = {
-      id: generateId(),
-      title: "New Scenario",
-      horizonDays: 30,
-      runs: 10000,
-      seed: 42,
-      correlation: "none",
-      kpi: "days_out_of_stock",
-      variables: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    addScenario(newScenario);
-  };
-
-  if (!activeScenario) {
-    return (
-      <div className="max-w-[1800px] mx-auto px-6 py-8">
-        <div className="card h-96 flex flex-col items-center justify-center">
-          <p className="text-textMute mb-4">No active scenario</p>
-          <button onClick={handleCreateNew} className="btn-primary">
-            Create New Scenario
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-[1800px] mx-auto px-6 py-8">
-      <h2 className="text-2xl font-bold mb-6">Scenario Studio</h2>
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Configuration */}
-        <div className="card">
-          <h3 className="font-semibold mb-4">Configuration</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm text-textMute">Title</label>
-              <input
-                type="text"
-                value={activeScenario.title}
-                onChange={(e) => updateScenario(activeScenario.id, { title: e.target.value })}
-                className="input mt-1"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-textMute">Runs</label>
-                <input
-                  type="number"
-                  value={activeScenario.runs}
-                  onChange={(e) =>
-                    updateScenario(activeScenario.id, { runs: Number(e.target.value) })
-                  }
-                  min={1000}
-                  max={100000}
-                  step={1000}
-                  className="input mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-textMute">Horizon (days)</label>
-                <input
-                  type="number"
-                  value={activeScenario.horizonDays}
-                  onChange={(e) =>
-                    updateScenario(activeScenario.id, { horizonDays: Number(e.target.value) })
-                  }
-                  className="input mt-1"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-textMute">KPI</label>
-              <select
-                value={activeScenario.kpi}
-                onChange={(e) =>
-                  updateScenario(activeScenario.id, {
-                    kpi: e.target.value as ScenarioConfig["kpi"],
-                  })
-                }
-                className="input mt-1"
-              >
-                <option value="days_out_of_stock">Days Out of Stock</option>
-                <option value="cost_overrun">Cost Overrun</option>
-                <option value="delivery_delay">Delivery Delay</option>
-                <option value="service_level">Service Level</option>
-              </select>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gradient">Scenario Studio</h2>
+          <p className="text-textMute">Design and configure simulation scenarios</p>
         </div>
+        <button onClick={addVariable} className="btn-primary flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Add Variable
+        </button>
+      </div>
 
-        {/* Variables */}
-        <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Variables</h3>
-            <button onClick={handleAddVariable} className="btn-secondary gap-2">
-              <Plus className="w-4 h-4" />
-              Add Variable
-            </button>
+      {activeScenario ? (
+        <div className="space-y-4">
+          <div className="card">
+            <label className="block text-sm font-medium mb-1">Scenario Name</label>
+            <input
+              type="text"
+              value={activeScenario.title}
+              onChange={(e) => updateScenario(activeScenario.id, { title: e.target.value })}
+              className="input w-full"
+            />
           </div>
 
-          <div className="space-y-3 max-h-[500px] overflow-y-auto">
-            {activeScenario.variables.map((v) => (
-              <div key={v.id} className="p-3 rounded-lg border border-border bg-bg/30">
-                <div className="flex items-start justify-between mb-2">
-                  <input
-                    type="text"
-                    value={v.name}
-                    onChange={(e) => handleUpdateVariable(v.id, { name: e.target.value })}
-                    className="input text-sm flex-1 mr-2"
-                  />
-                  <button
-                    onClick={() => handleDeleteVariable(v.id)}
-                    className="btn-ghost p-1 text-danger"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+          {activeScenario.variables.length > 0 ? (
+            <div className="space-y-3">
+              {activeScenario.variables.map((variable) => (
+                <div key={variable.id} className="card bg-surface/50">
+                  <div className="grid grid-cols-6 gap-4 items-start">
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-textMute">Name</label>
+                      <input
+                        type="text"
+                        value={variable.name}
+                        onChange={(e) => updateVariable(variable.id, { name: e.target.value })}
+                        className="input w-full text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-textMute">Distribution</label>
+                      <select
+                        value={variable.dist}
+                        onChange={(e) => updateVariable(variable.id, { dist: e.target.value as DistName })}
+                        className="input w-full text-sm"
+                      >
+                        <option value="triangular">Triangular</option>
+                        <option value="pert">PERT</option>
+                        <option value="normal">Normal</option>
+                        <option value="lognormal">Lognormal</option>
+                      </select>
+                    </div>
+                    {(variable.dist === "triangular" || variable.dist === "pert") && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-textMute">Min</label>
+                          <input
+                            type="number"
+                            value={variable.min ?? 0}
+                            onChange={(e) => updateVariable(variable.id, { min: parseFloat(e.target.value) })}
+                            className="input w-full text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-textMute">Mode</label>
+                          <input
+                            type="number"
+                            value={variable.mode ?? 0}
+                            onChange={(e) => updateVariable(variable.id, { mode: parseFloat(e.target.value) })}
+                            className="input w-full text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-textMute">Max</label>
+                          <input
+                            type="number"
+                            value={variable.max ?? 0}
+                            onChange={(e) => updateVariable(variable.id, { max: parseFloat(e.target.value) })}
+                            className="input w-full text-sm"
+                          />
+                        </div>
+                      </>
+                    )}
+                    {(variable.dist === "normal" || variable.dist === "lognormal") && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-textMute">Mean</label>
+                          <input
+                            type="number"
+                            value={variable.mean ?? 0}
+                            onChange={(e) => updateVariable(variable.id, { mean: parseFloat(e.target.value) })}
+                            className="input w-full text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1 text-textMute">Std Dev</label>
+                          <input
+                            type="number"
+                            value={variable.stdev ?? 0}
+                            onChange={(e) => updateVariable(variable.id, { stdev: parseFloat(e.target.value) })}
+                            className="input w-full text-sm"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-end">
+                      <button onClick={() => removeVariable(variable.id)} className="btn-ghost text-danger p-2">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <select
-                    value={v.dist}
-                    onChange={(e) => handleUpdateVariable(v.id, { dist: e.target.value as any })}
-                    className="input"
-                  >
-                    <option value="triangular">Triangular</option>
-                    <option value="pert">PERT</option>
-                    <option value="normal">Normal</option>
-                    <option value="lognormal">Lognormal</option>
-                  </select>
-
-                  {(v.dist === "triangular" || v.dist === "pert") && (
-                    <>
-                      <input
-                        type="number"
-                        value={v.min ?? 0}
-                        onChange={(e) =>
-                          handleUpdateVariable(v.id, { min: Number(e.target.value) })
-                        }
-                        className="input"
-                        placeholder="Min"
-                      />
-                      <input
-                        type="number"
-                        value={v.mode ?? 0}
-                        onChange={(e) =>
-                          handleUpdateVariable(v.id, { mode: Number(e.target.value) })
-                        }
-                        className="input"
-                        placeholder="Mode"
-                      />
-                      <input
-                        type="number"
-                        value={v.max ?? 0}
-                        onChange={(e) =>
-                          handleUpdateVariable(v.id, { max: Number(e.target.value) })
-                        }
-                        className="input"
-                        placeholder="Max"
-                      />
-                    </>
-                  )}
-
-                  {(v.dist === "normal" || v.dist === "lognormal") && (
-                    <>
-                      <input
-                        type="number"
-                        value={v.mean ?? 0}
-                        onChange={(e) =>
-                          handleUpdateVariable(v.id, { mean: Number(e.target.value) })
-                        }
-                        className="input"
-                        placeholder="Mean"
-                      />
-                      <input
-                        type="number"
-                        value={v.stdev ?? 1}
-                        onChange={(e) =>
-                          handleUpdateVariable(v.id, { stdev: Number(e.target.value) })
-                        }
-                        className="input"
-                        placeholder="Std Dev"
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {activeScenario.variables.length === 0 && (
-              <div className="text-center text-textMute py-8">
+              ))}
+            </div>
+          ) : (
+            <div className="card h-64 flex items-center justify-center text-textMute">
+              <div className="text-center">
                 No variables yet. Click &quot;Add Variable&quot; to get started.
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
+      ) : (
+        <div className="card h-96 flex items-center justify-center text-textMute">No scenario selected</div>
+      )}
     </div>
   );
 }
 
 // ============================================================================
-// Risk Register Tab
+// RISK REGISTER TAB (Existing)
 // ============================================================================
 function RiskRegisterTab() {
   const risks = useRegisterStore((s) => s.risks);
   const addRisk = useRegisterStore((s) => s.addRisk);
-  const deleteRisk = useRegisterStore((s) => s.deleteRisk);
 
   const handleAddRisk = () => {
-    const newRisk: RiskItem = {
-      id: generateId(),
+    addRisk({
+      id: `risk_${Date.now()}`,
       title: "New Risk",
-      category: "Ops",
+      category: "Other",
       likelihood: 3,
       impact: 3,
       status: "open",
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
-    addRisk(newRisk);
+    });
   };
 
+  // 5x5 heatmap
+  const heatmapData = Array.from({ length: 25 }, (_, i) => {
+    const likelihood = 5 - Math.floor(i / 5);
+    const impact = (i % 5) + 1;
+    const score = likelihood * impact;
+    const count = risks.filter((r) => r.likelihood === likelihood && r.impact === impact).length;
+    const color = score >= 15 ? "bg-danger/30 border-danger" : score >= 9 ? "bg-warning/30 border-warning" : "bg-success/30 border-success";
+    return { likelihood, impact, score, count, color };
+  });
+
   return (
-    <div className="max-w-[1800px] mx-auto px-6 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Risk Register</h2>
-        <button onClick={handleAddRisk} className="btn-primary gap-2">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gradient">Risk Register</h2>
+          <p className="text-textMute">Track and manage organizational risks</p>
+        </div>
+        <button onClick={handleAddRisk} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Add Risk
         </button>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Risk List */}
-        <div className="lg:col-span-2 space-y-3">
-          {risks.length === 0 && (
-            <div className="card h-96 flex items-center justify-center text-textMute">
-              No risks registered. Click &quot;Add Risk&quot; to create one.
-            </div>
-          )}
-
-          {risks.map((risk) => {
-            const riskScore = risk.likelihood * risk.impact;
-            const color =
-              riskScore >= 15 ? "danger" : riskScore >= 9 ? "warning" : "success";
-
-            return (
-              <div key={risk.id} className="card">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h4 className="font-semibold">{risk.title}</h4>
-                      <span className={`text-xs px-2 py-0.5 rounded bg-${color}/20 text-${color}`}>
-                        {risk.category}
-                      </span>
-                    </div>
-                    {risk.description && (
-                      <p className="text-sm text-textMute mt-2">{risk.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-3 text-xs">
-                      <span className="text-textMute">L: {risk.likelihood}</span>
-                      <span className="text-textMute">I: {risk.impact}</span>
-                      <span className="font-semibold">Score: {riskScore}</span>
-                      <span className="px-2 py-0.5 rounded bg-surface border border-border">
-                        {risk.status}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => deleteRisk(risk.id)}
-                    className="btn-ghost p-1 text-danger"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
+      <div className="grid grid-cols-3 gap-6">
+        {/* Heatmap */}
+        <div className="card col-span-2">
+          <h3 className="font-semibold mb-4">Risk Heatmap (5×5)</h3>
+          <div className="grid grid-cols-5 gap-1">
+            {heatmapData.map((cell, idx) => (
+              <div
+                key={idx}
+                className={`h-20 flex items-center justify-center border-2 rounded ${cell.color} transition-all hover:scale-105`}
+              >
+                {cell.count > 0 && <span className="text-2xl font-bold text-text">{cell.count}</span>}
               </div>
-            );
-          })}
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-5 gap-1 text-xs text-center">
+            <div>1</div>
+            <div>2</div>
+            <div>3</div>
+            <div>4</div>
+            <div>5</div>
+          </div>
+          <div className="text-xs text-center text-textMute mt-1">Impact →</div>
         </div>
 
-        {/* Risk Heatmap */}
+        {/* Stats */}
         <div className="card">
-          <h3 className="font-semibold mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Risk Heatmap
-          </h3>
-          <div className="grid grid-cols-5 gap-1">
-            {Array.from({ length: 25 }, (_, i) => {
-              const likelihood = 5 - Math.floor(i / 5);
-              const impact = (i % 5) + 1;
-              const score = likelihood * impact;
-              const count = risks.filter(
-                (r) => r.likelihood === likelihood && r.impact === impact
-              ).length;
-
-              const color =
-                score >= 15 ? "bg-danger/30" : score >= 9 ? "bg-warning/30" : "bg-success/30";
-
-              return (
-                <div
-                  key={i}
-                  className={`aspect-square flex items-center justify-center text-xs font-semibold rounded ${color} border border-border`}
-                >
-                  {count || ""}
-                </div>
-              );
-            })}
+          <h3 className="font-semibold mb-4">Summary</h3>
+          <div className="space-y-3">
+            <div>
+              <div className="text-xs text-textMute">Total Risks</div>
+              <div className="text-2xl font-bold text-text">{risks.length}</div>
+            </div>
+            <div>
+              <div className="text-xs text-textMute">High Severity (≥15)</div>
+              <div className="text-2xl font-bold text-danger">{risks.filter((r) => r.likelihood * r.impact >= 15).length}</div>
+            </div>
+            <div>
+              <div className="text-xs text-textMute">Medium (9-14)</div>
+              <div className="text-2xl font-bold text-warning">
+                {risks.filter((r) => {
+                  const s = r.likelihood * r.impact;
+                  return s >= 9 && s < 15;
+                }).length}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-textMute">Low (&lt;9)</div>
+              <div className="text-2xl font-bold text-success">{risks.filter((r) => r.likelihood * r.impact < 9).length}</div>
+            </div>
           </div>
-          <div className="mt-3 text-xs text-textMute text-center">
-            Likelihood (5=High) × Impact (5=High)
+        </div>
+      </div>
+
+      {risks.length > 0 ? (
+        <div className="card">
+          <h3 className="font-semibold mb-4">Risk List</h3>
+          <div className="space-y-2">
+            {risks.slice(0, 10).map((risk) => (
+              <div key={risk.id} className="p-3 bg-surface/50 rounded border border-border flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="font-medium">{risk.title}</div>
+                  <div className="text-xs text-textMute mt-1">
+                    {risk.category} • Likelihood: {risk.likelihood} • Impact: {risk.impact} • Score: {risk.likelihood * risk.impact}
+                  </div>
+                </div>
+                <div className={`px-3 py-1 rounded text-xs font-medium ${risk.status === "open" ? "bg-warning/20 text-warning" : "bg-success/20 text-success"}`}>
+                  {risk.status}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="card h-64 flex items-center justify-center text-textMute">
+          No risks registered. Click &quot;Add Risk&quot; to create one.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// COGNITIVE DIGITAL TWIN TAB ⭐ NEW
+// ============================================================================
+function CognitiveTwinTab() {
+  const [twins] = useState<DigitalTwin[]>([
+    {
+      id: "twin_1",
+      name: "Supply Chain Digital Twin",
+      description: "Virtual replica of end-to-end supply chain operations with AI-powered predictive analytics",
+      type: "system",
+      state: {
+        timestamp: Date.now(),
+        parameters: { throughput: 1250, latency: 45, inventory: 8500, quality: 0.985 },
+        health: "healthy",
+        anomalyScore: 0.12,
+        predictions: {
+          horizon: 30,
+          values: { throughput: [1200, 1220, 1240, 1260], inventory: [8400, 8350, 8300, 8250] },
+          confidence: [0.95, 0.92, 0.88, 0.85],
+        },
+      },
+      sensors: [
+        { id: "s1", name: "Throughput Rate", type: "flow", unit: "units/hr", value: 1250, status: "normal" },
+        { id: "s2", name: "Avg Latency", type: "speed", unit: "min", value: 45, threshold: { min: 0, max: 60 }, status: "normal" },
+        { id: "s3", name: "Inventory Level", type: "count", unit: "units", value: 8500, threshold: { min: 7000, max: 10000 }, status: "normal" },
+        { id: "s4", name: "Quality Score", type: "custom", unit: "%", value: 98.5, threshold: { min: 95, max: 100 }, status: "normal" },
+      ],
+      actuators: [
+        { id: "a1", name: "Production Rate", type: "controller", state: "auto", value: 100 },
+        { id: "a2", name: "Safety Stock", type: "policy", state: "on", value: 1000 },
+      ],
+      kpis: [
+        { id: "k1", name: "OEE", current: 0.85, target: 0.90, tolerance: 0.05, trend: "stable" },
+        { id: "k2", name: "OTIF", current: 0.92, target: 0.95, tolerance: 0.03, trend: "up" },
+      ],
+      aiModel: { type: "lstm", trainedAt: Date.now() - 86400000 * 7, accuracy: 0.89 },
+      simulationMode: "predictive",
+      updateFrequency: 5000,
+      createdAt: Date.now() - 86400000 * 30,
+      updatedAt: Date.now(),
+    },
+  ]);
+
+  const selectedTwin = twins[0];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient flex items-center gap-2">
+          <Brain className="w-7 h-7 text-primary" />
+          Cognitive Digital Twin
+        </h2>
+        <p className="text-textMute">AI-powered virtual replicas with predictive intelligence</p>
+      </div>
+
+      {selectedTwin && (
+        <>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="card">
+              <div className="text-xs text-textMute">Health Status</div>
+              <div className="text-2xl font-bold text-success mt-1 capitalize">{selectedTwin.state.health}</div>
+              <div className="text-xs mt-1">Anomaly: {(selectedTwin.state.anomalyScore * 100).toFixed(1)}%</div>
+            </div>
+            <div className="card">
+              <div className="text-xs text-textMute">AI Model</div>
+              <div className="text-2xl font-bold text-primary mt-1 uppercase">{selectedTwin.aiModel?.type}</div>
+              <div className="text-xs mt-1">Accuracy: {((selectedTwin.aiModel?.accuracy || 0) * 100).toFixed(0)}%</div>
+            </div>
+            <div className="card">
+              <div className="text-xs text-textMute">Simulation Mode</div>
+              <div className="text-2xl font-bold text-secondary mt-1 capitalize">{selectedTwin.simulationMode}</div>
+              <div className="text-xs mt-1">{selectedTwin.state.predictions.horizon} days ahead</div>
+            </div>
+            <div className="card">
+              <div className="text-xs text-textMute">Active Sensors</div>
+              <div className="text-2xl font-bold text-text mt-1">{selectedTwin.sensors.length}</div>
+              <div className="text-xs mt-1">{selectedTwin.actuators.length} actuators</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div className="card">
+              <h3 className="font-semibold mb-4">Live Sensor Data</h3>
+              <div className="space-y-3">
+                {selectedTwin.sensors.map((sensor) => (
+                  <div key={sensor.id} className="flex items-center justify-between p-2 bg-surface/50 rounded">
+                    <div>
+                      <div className="text-sm font-medium">{sensor.name}</div>
+                      <div className="text-xs text-textMute capitalize">{sensor.type}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-primary">
+                        {sensor.value} {sensor.unit}
+                      </div>
+                      <div className={`text-xs ${sensor.status === "normal" ? "text-success" : "text-warning"}`}>{sensor.status}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card">
+              <h3 className="font-semibold mb-4">KPI Performance</h3>
+              <div className="space-y-4">
+                {selectedTwin.kpis.map((kpi) => {
+                  const pct = (kpi.current / kpi.target) * 100;
+                  const isOnTrack = Math.abs(kpi.current - kpi.target) <= kpi.tolerance;
+                  return (
+                    <div key={kpi.id}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{kpi.name}</span>
+                        <span className="text-sm">
+                          {(kpi.current * 100).toFixed(1)}% / {(kpi.target * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-surface rounded-full overflow-hidden">
+                        <div className={`h-full ${isOnTrack ? "bg-success" : "bg-warning"}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                      </div>
+                      <div className="flex items-center gap-1 mt-1 text-xs text-textMute">
+                        {kpi.trend === "up" && <TrendingUp className="w-3 h-3 text-success" />}
+                        {kpi.trend === "down" && <TrendingDown className="w-3 h-3 text-danger" />}
+                        <span className="capitalize">{kpi.trend}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="font-semibold mb-4">30-Day Predictive Forecast (AI-Generated)</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart
+                data={Array.from({ length: 30 }, (_, i) => ({
+                  day: i + 1,
+                  throughput: 1250 - i * 2 + Math.random() * 40,
+                  inventory: 8500 - i * 10 + Math.random() * 200,
+                }))}
+              >
+                <defs>
+                  <linearGradient id="colorThroughput" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis yAxisId="left" tick={{ fontSize: 10 }} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} />
+                <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
+                <Area yAxisId="left" type="monotone" dataKey="throughput" stroke="hsl(var(--primary))" fill="url(#colorThroughput)" />
+                <Area yAxisId="right" type="monotone" dataKey="inventory" stroke="hsl(var(--secondary))" fill="none" strokeDasharray="3 3" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// PORTFOLIO TAB ⭐ NEW
+// ============================================================================
+function PortfolioTab() {
+  const scenarios = useScenarioStore((s) => s.scenarios);
+
+  // Mock portfolio aggregation
+  const portfolio: Portfolio = {
+    id: "portfolio_1",
+    name: "Enterprise Risk Portfolio",
+    description: "Aggregated view of all organizational risks",
+    scenarioIds: scenarios.slice(0, 3).map((s) => s.id),
+    weights: [0.5, 0.3, 0.2],
+    aggregationMethod: "monte-carlo",
+    var95: 125000,
+    var99: 185000,
+    cvar95: 142000,
+    cvar99: 210000,
+    expectedLoss: 75000,
+    diversificationBenefit: 0.18,
+    createdAt: Date.now() - 86400000 * 14,
+    updatedAt: Date.now(),
+  };
+
+  const varData = [
+    { metric: "Expected", value: portfolio.expectedLoss },
+    { metric: "VaR 95%", value: portfolio.var95 },
+    { metric: "VaR 99%", value: portfolio.var99 },
+    { metric: "CVaR 95%", value: portfolio.cvar95 },
+    { metric: "CVaR 99%", value: portfolio.cvar99 },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient">Portfolio Risk Aggregation</h2>
+        <p className="text-textMute">Enterprise-wide risk consolidation with VaR/CVaR analytics</p>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
+        <div className="card">
+          <div className="text-xs text-textMute">Expected Loss</div>
+          <div className="text-2xl font-bold text-text mt-1">${(portfolio.expectedLoss / 1000).toFixed(0)}K</div>
+          <div className="text-xs text-textMute mt-1">Mean scenario</div>
+        </div>
+        <div className="card">
+          <div className="text-xs text-textMute">VaR 95%</div>
+          <div className="text-2xl font-bold text-warning mt-1">${(portfolio.var95 / 1000).toFixed(0)}K</div>
+          <div className="text-xs text-textMute mt-1">1-in-20 event</div>
+        </div>
+        <div className="card">
+          <div className="text-xs text-textMute">CVaR 95%</div>
+          <div className="text-2xl font-bold text-danger mt-1">${(portfolio.cvar95 / 1000).toFixed(0)}K</div>
+          <div className="text-xs text-textMute mt-1">Tail average</div>
+        </div>
+        <div className="card">
+          <div className="text-xs text-textMute">Diversification Benefit</div>
+          <div className="text-2xl font-bold text-success mt-1">{((portfolio.diversificationBenefit ?? 0) * 100).toFixed(0)}%</div>
+          <div className="text-xs text-textMute mt-1">Risk reduction</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="card">
+          <h3 className="font-semibold mb-4">Value at Risk (VaR) Analysis</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={varData}>
+              <XAxis dataKey="metric" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
+              <Bar dataKey="value" fill="hsl(var(--primary))">
+                {varData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={index === 0 ? "hsl(var(--success))" : index >= 3 ? "hsl(var(--danger))" : "hsl(var(--warning))"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="card">
+          <h3 className="font-semibold mb-4">Portfolio Composition</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={scenarios.slice(0, 3).map((s, i) => ({ name: s.title, value: (portfolio.weights?.[i] || 0) * 100 }))}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label
+              >
+                <Cell fill="hsl(var(--primary))" />
+                <Cell fill="hsl(var(--secondary))" />
+                <Cell fill="hsl(var(--warning))" />
+              </Pie>
+              <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// BOW-TIE ANALYSIS TAB ⭐ NEW
+// ============================================================================
+function BowTieTab() {
+  const bowtie: BowTie = {
+    id: "bt_1",
+    title: "Data Breach Bow-Tie Analysis",
+    centralEvent: "Unauthorized Data Access",
+    severity: 5,
+    threats: [
+      { id: "t1", label: "Phishing Attack", probability: 0.15 },
+      { id: "t2", label: "Malware Infection", probability: 0.08 },
+      { id: "t3", label: "Insider Threat", probability: 0.05 },
+    ],
+    consequences: [
+      { id: "c1", label: "Financial Loss", probability: 0.8 },
+      { id: "c2", label: "Reputation Damage", probability: 0.9 },
+      { id: "c3", label: "Regulatory Fine", probability: 0.6 },
+    ],
+    preventiveControls: [
+      { id: "pc1", label: "MFA", effectiveness: 0.85, type: "preventive", status: "active", linkedThreatsOrConsequences: ["t1", "t2"] },
+      { id: "pc2", label: "Security Training", effectiveness: 0.7, type: "preventive", status: "active", linkedThreatsOrConsequences: ["t1", "t3"] },
+    ],
+    mitigativeControls: [
+      { id: "mc1", label: "Incident Response Plan", effectiveness: 0.75, type: "corrective", status: "active", linkedThreatsOrConsequences: ["c1", "c2"] },
+      { id: "mc2", label: "Cyber Insurance", effectiveness: 0.9, type: "corrective", status: "active", linkedThreatsOrConsequences: ["c1", "c3"] },
+    ],
+    createdAt: Date.now() - 86400000 * 20,
+    updatedAt: Date.now(),
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient">Bow-Tie Analysis</h2>
+        <p className="text-textMute">Threat-Event-Consequence visualization with barrier controls</p>
+      </div>
+
+      <div className="card">
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-danger/20 border-2 border-danger rounded-lg">
+            <AlertTriangle className="w-5 h-5 text-danger" />
+            <span className="text-lg font-bold">{bowtie.centralEvent}</span>
+            <span className="text-xs bg-danger text-white px-2 py-1 rounded">Severity: {bowtie.severity}</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6">
+          {/* Threats */}
+          <div>
+            <h3 className="text-sm font-semibold text-warning mb-3">⬅ Threats</h3>
+            <div className="space-y-2">
+              {bowtie.threats.map((threat) => (
+                <div key={threat.id} className="p-3 bg-warning/10 border border-warning/30 rounded text-sm">
+                  <div className="font-medium">{threat.label}</div>
+                  <div className="text-xs text-textMute mt-1">P = {((threat.probability || 0) * 100).toFixed(0)}%</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <h4 className="text-xs font-semibold text-success mb-2">Preventive Controls</h4>
+              <div className="space-y-1">
+                {bowtie.preventiveControls.map((ctrl) => (
+                  <div key={ctrl.id} className="p-2 bg-success/10 border border-success/30 rounded text-xs">
+                    <div className="font-medium">{ctrl.label}</div>
+                    <div className="text-textMute">Effectiveness: {(ctrl.effectiveness * 100).toFixed(0)}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Central Event */}
+          <div className="flex items-center justify-center">
+            <div className="w-2 h-full bg-gradient-to-r from-warning via-danger to-primary rounded-full"></div>
+          </div>
+
+          {/* Consequences */}
+          <div>
+            <h3 className="text-sm font-semibold text-primary mb-3">Consequences ➡</h3>
+            <div className="space-y-2">
+              {bowtie.consequences.map((cons) => (
+                <div key={cons.id} className="p-3 bg-primary/10 border border-primary/30 rounded text-sm">
+                  <div className="font-medium">{cons.label}</div>
+                  <div className="text-xs text-textMute mt-1">P = {((cons.probability || 0) * 100).toFixed(0)}%</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4">
+              <h4 className="text-xs font-semibold text-secondary mb-2">Mitigative Controls</h4>
+              <div className="space-y-1">
+                {bowtie.mitigativeControls.map((ctrl) => (
+                  <div key={ctrl.id} className="p-2 bg-secondary/10 border border-secondary/30 rounded text-xs">
+                    <div className="font-medium">{ctrl.label}</div>
+                    <div className="text-textMute">Effectiveness: {(ctrl.effectiveness * 100).toFixed(0)}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -663,65 +943,399 @@ function RiskRegisterTab() {
 }
 
 // ============================================================================
-// Main Page Component
+// FMEA TAB ⭐ NEW
 // ============================================================================
-export default function RiskCoachNeoPage() {
-  const activeTab = useUiStore((s) => s.activeTab);
-  const scenarios = useScenarioStore((s) => s.scenarios);
-  const addScenario = useScenarioStore((s) => s.addScenario);
-  const setActiveScenario = useScenarioStore((s) => s.setActiveScenario);
+function FMEATab() {
+  const fmea: FMEA = {
+    id: "fmea_1",
+    title: "Product Launch FMEA",
+    type: "process",
+    items: [
+      {
+        id: "f1",
+        component: "Marketing Campaign",
+        function: "Generate demand",
+        failureMode: "Low engagement",
+        effects: "Missed sales targets",
+        causes: "Poor targeting",
+        severity: 8,
+        occurrence: 5,
+        detection: 6,
+        rpn: 240,
+      },
+      {
+        id: "f2",
+        component: "Supply Chain",
+        function: "Deliver product",
+        failureMode: "Stock-out",
+        effects: "Lost sales",
+        causes: "Demand forecast error",
+        severity: 9,
+        occurrence: 4,
+        detection: 7,
+        rpn: 252,
+      },
+      {
+        id: "f3",
+        component: "Quality Control",
+        function: "Ensure quality",
+        failureMode: "Defects shipped",
+        effects: "Returns & complaints",
+        causes: "Insufficient testing",
+        severity: 10,
+        occurrence: 3,
+        detection: 5,
+        rpn: 150,
+      },
+    ],
+    createdAt: Date.now() - 86400000 * 10,
+    updatedAt: Date.now(),
+  };
 
-  // Initialize with default scenario
-  useEffect(() => {
-    if (scenarios.length === 0) {
-      const defaultScenario: ScenarioConfig = {
-        id: generateId(),
-        title: "Supply Chain Risk Analysis",
-        horizonDays: 30,
-        runs: 10000,
-        seed: 42,
-        correlation: "none",
-        kpi: "days_out_of_stock",
-        variables: [
-          {
-            id: generateId(),
-            name: "Supplier Delay",
-            unit: "days",
-            dist: "pert",
-            min: 7,
-            mode: 14,
-            max: 30,
-          },
-          {
-            id: generateId(),
-            name: "Stock Coverage",
-            unit: "days",
-            dist: "triangular",
-            min: 8,
-            mode: 12,
-            max: 18,
-          },
-        ],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      };
-      addScenario(defaultScenario);
-      setActiveScenario(defaultScenario.id);
-    }
-  }, [scenarios.length, addScenario, setActiveScenario]);
+  const sortedItems = [...fmea.items].sort((a, b) => b.rpn - a.rpn);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-drift animate-drift pointer-events-none opacity-40" />
-
-      {/* Tab Content */}
-      <div className="relative">
-        {activeTab === "dashboard" && <DashboardTab />}
-        {activeTab === "monte-carlo" && <MonteCarloTab />}
-        {activeTab === "scenario-studio" && <ScenarioStudioTab />}
-        {activeTab === "register" && <RiskRegisterTab />}
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient">FMEA - Failure Mode Effects Analysis</h2>
+        <p className="text-textMute">Systematic risk prioritization using RPN (Severity × Occurrence × Detection)</p>
       </div>
-    </motion.div>
+
+      <div className="card">
+        <h3 className="font-semibold mb-4">{fmea.title}</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-left p-2">Component</th>
+                <th className="text-left p-2">Failure Mode</th>
+                <th className="text-left p-2">Effects</th>
+                <th className="text-center p-2">S</th>
+                <th className="text-center p-2">O</th>
+                <th className="text-center p-2">D</th>
+                <th className="text-center p-2 font-bold">RPN</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedItems.map((item) => {
+                const riskLevel = item.rpn >= 200 ? "bg-danger/10 border-l-4 border-danger" : item.rpn >= 100 ? "bg-warning/10 border-l-4 border-warning" : "bg-success/10 border-l-4 border-success";
+                return (
+                  <tr key={item.id} className={`border-b border-border/50 ${riskLevel}`}>
+                    <td className="p-2 font-medium">{item.component}</td>
+                    <td className="p-2">{item.failureMode}</td>
+                    <td className="p-2 text-textMute">{item.effects}</td>
+                    <td className="p-2 text-center font-bold">{item.severity}</td>
+                    <td className="p-2 text-center font-bold">{item.occurrence}</td>
+                    <td className="p-2 text-center font-bold">{item.detection}</td>
+                    <td className="p-2 text-center font-bold text-lg">{item.rpn}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3 className="font-semibold mb-4">RPN Distribution</h3>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={sortedItems}>
+            <XAxis dataKey="component" tick={{ fontSize: 10 }} />
+            <YAxis />
+            <Tooltip contentStyle={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }} />
+            <Bar dataKey="rpn" fill="hsl(var(--warning))">
+              {sortedItems.map((item, index) => (
+                <Cell key={`cell-${index}`} fill={item.rpn >= 200 ? "hsl(var(--danger))" : item.rpn >= 100 ? "hsl(var(--warning))" : "hsl(var(--success))"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// NETWORK ANALYSIS TAB ⭐ NEW
+// ============================================================================
+function NetworkTab() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient flex items-center gap-2">
+          <Network className="w-7 h-7 text-primary" />
+          Risk Network Analysis
+        </h2>
+        <p className="text-textMute">Graph-based risk dependencies and cascading effects</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="card">
+          <div className="text-xs text-textMute">Network Density</div>
+          <div className="text-2xl font-bold text-primary mt-1">0.42</div>
+          <div className="text-xs text-textMute mt-1">Interconnection level</div>
+        </div>
+        <div className="card">
+          <div className="text-xs text-textMute">Clustering Coefficient</div>
+          <div className="text-2xl font-bold text-secondary mt-1">0.58</div>
+          <div className="text-xs text-textMute mt-1">Local connectivity</div>
+        </div>
+        <div className="card">
+          <div className="text-xs text-textMute">Critical Nodes</div>
+          <div className="text-2xl font-bold text-warning mt-1">7</div>
+          <div className="text-xs text-textMute mt-1">High centrality</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3 className="font-semibold mb-4">Risk Dependency Graph (Mock Visualization)</h3>
+        <div className="h-96 bg-surface/50 rounded-lg flex items-center justify-center">
+          <div className="text-center text-textMute">
+            <Network className="w-16 h-16 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">Interactive network graph</p>
+            <p className="text-xs mt-1">Use D3.js or Cytoscape.js for production implementation</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3 className="font-semibold mb-4">Central Nodes (Highest Impact)</h3>
+        <div className="space-y-2">
+          {["Financial System Failure", "Supply Chain Disruption", "Data Breach", "Regulatory Change", "Key Personnel Loss"].map((node, i) => (
+            <div key={i} className="flex items-center justify-between p-3 bg-surface/50 rounded">
+              <div>
+                <div className="font-medium">{node}</div>
+                <div className="text-xs text-textMute">Betweenness centrality: {(0.85 - i * 0.1).toFixed(2)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-bold text-danger">{15 - i * 2} connections</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// KRI TAB
+// ============================================================================
+function KRITab() {
+  const kris: KRI[] = [
+    {
+      id: "kri_1",
+      name: "Cybersecurity Incident Rate",
+      description: "Number of security incidents per month",
+      category: "cyber",
+      unit: "incidents/month",
+      frequency: "monthly",
+      currentValue: 8,
+      previousValue: 12,
+      trend: "improving",
+      thresholds: {
+        green: { min: 0, max: 5 },
+        amber: { min: 5, max: 10 },
+        red: { min: 10, max: 999 },
+      },
+      status: "amber",
+      owner: "CISO",
+      linkedRiskIds: [],
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    },
+    {
+      id: "kri_2",
+      name: "Customer Churn Rate",
+      description: "Monthly customer attrition percentage",
+      category: "operational",
+      unit: "%",
+      frequency: "monthly",
+      currentValue: 3.2,
+      previousValue: 3.8,
+      trend: "improving",
+      thresholds: {
+        green: { min: 0, max: 3 },
+        amber: { min: 3, max: 5 },
+        red: { min: 5, max: 100 },
+      },
+      status: "amber",
+      owner: "COO",
+      linkedRiskIds: [],
+      history: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient">Key Risk Indicators (KRI)</h2>
+        <p className="text-textMute">Real-time monitoring with threshold-based alerting</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        {kris.map((kri) => (
+          <div key={kri.id} className="card">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold">{kri.name}</h3>
+                <p className="text-xs text-textMute">{kri.description}</p>
+              </div>
+              <div className={`px-3 py-1 rounded text-xs font-bold ${kri.status === "green" ? "bg-success/20 text-success" : kri.status === "amber" ? "bg-warning/20 text-warning" : "bg-danger/20 text-danger"}`}>
+                {kri.status.toUpperCase()}
+              </div>
+            </div>
+            <div className="text-3xl font-bold text-text mb-2">
+              {kri.currentValue} {kri.unit}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-success">
+              <TrendingDown className="w-4 h-4" />
+              <span>
+                {kri.previousValue} → {kri.currentValue} (Improving)
+              </span>
+            </div>
+            <div className="mt-4 space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span>Thresholds:</span>
+              </div>
+              <div className="flex gap-1 h-2">
+                <div className="flex-1 bg-success/30 rounded" />
+                <div className="flex-1 bg-warning/30 rounded" />
+                <div className="flex-1 bg-danger/30 rounded" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// RISK APPETITE TAB
+// ============================================================================
+function RiskAppetiteTab() {
+  const appetites: RiskAppetite[] = [
+    {
+      id: "ra_1",
+      category: "Financial",
+      metric: "Annual Loss",
+      unit: "$M",
+      appetite: 5,
+      tolerance: 10,
+      capacity: 20,
+      currentExposure: 7,
+      status: "within-tolerance",
+      owner: "CFO",
+      reviewFrequency: "quarterly",
+      lastReviewed: Date.now() - 86400000 * 30,
+      nextReview: Date.now() + 86400000 * 60,
+    },
+    {
+      id: "ra_2",
+      category: "Reputational",
+      metric: "NPS Score Drop",
+      unit: "points",
+      appetite: 5,
+      tolerance: 10,
+      capacity: 20,
+      currentExposure: 3,
+      status: "within-appetite",
+      owner: "CMO",
+      reviewFrequency: "monthly",
+      lastReviewed: Date.now() - 86400000 * 15,
+      nextReview: Date.now() + 86400000 * 15,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient">Risk Appetite Framework</h2>
+        <p className="text-textMute">Define tolerance bands and monitor current exposure</p>
+      </div>
+
+      <div className="space-y-4">
+        {appetites.map((app) => (
+          <div key={app.id} className="card">
+            <div className="mb-4">
+              <h3 className="font-semibold">{app.category} - {app.metric}</h3>
+              <p className="text-xs text-textMute">Owner: {app.owner} • Review: {app.reviewFrequency}</p>
+            </div>
+            <div className="relative h-12 bg-surface/50 rounded-lg overflow-hidden">
+              <div className="absolute inset-0 flex">
+                <div className="bg-success/20 border-r-2 border-success" style={{ width: `${(app.appetite / app.capacity) * 100}%` }}>
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-success">APPETITE</div>
+                </div>
+                <div className="bg-warning/20 border-r-2 border-warning" style={{ width: `${((app.tolerance - app.appetite) / app.capacity) * 100}%` }}>
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-warning">TOLERANCE</div>
+                </div>
+                <div className="bg-danger/20 flex-1">
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-danger">CAPACITY</div>
+                </div>
+              </div>
+              <div
+                className="absolute top-0 bottom-0 w-1 bg-text shadow-lg"
+                style={{ left: `${(app.currentExposure / app.capacity) * 100}%` }}
+                title={`Current: ${app.currentExposure} ${app.unit}`}
+              >
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold">
+                  {app.currentExposure} {app.unit}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-xs">
+              <span>0 {app.unit}</span>
+              <span className={`font-bold ${app.status === "within-appetite" ? "text-success" : app.status === "within-tolerance" ? "text-warning" : "text-danger"}`}>
+                {app.status.replace(/-/g, " ").toUpperCase()}
+              </span>
+              <span>{app.capacity} {app.unit}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// PLACEHOLDER TABS (Bayesian, etc.)
+// ============================================================================
+function BayesianTab() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient">Bayesian Network Modeling</h2>
+        <p className="text-textMute">Probabilistic reasoning with conditional dependencies</p>
+      </div>
+      <div className="card h-96 flex items-center justify-center text-textMute">
+        <div className="text-center">
+          <Brain className="w-16 h-16 mx-auto mb-3 opacity-50" />
+          <p className="font-medium">Bayesian Network Editor</p>
+          <p className="text-xs mt-1">Define nodes, CPTs, and run inference algorithms</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PlaceholderTab({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gradient">{title}</h2>
+        <p className="text-textMute">{subtitle}</p>
+      </div>
+      <div className="card h-96 flex items-center justify-center text-textMute">
+        <div className="text-center">
+          <Activity className="w-16 h-16 mx-auto mb-3 opacity-50" />
+          <p className="font-medium">Coming Soon</p>
+          <p className="text-xs mt-1">Enterprise feature under development</p>
+        </div>
+      </div>
+    </div>
   );
 }

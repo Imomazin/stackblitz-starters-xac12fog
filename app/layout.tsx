@@ -6,12 +6,71 @@ import { useUiStore } from "./store/ui";
 import { TrendingUp, Moon, Sun } from "lucide-react";
 import type { TabName } from "./types";
 
-const TABS: { id: TabName; label: string }[] = [
-  { id: "dashboard", label: "Dashboard" },
-  { id: "monte-carlo", label: "Monte Carlo" },
-  { id: "scenario-studio", label: "Scenario Studio" },
-  { id: "register", label: "Risk Register" },
+// Enterprise-grade navigation with categories
+const TAB_GROUPS: { title: string; tabs: { id: TabName; label: string; icon?: string }[] }[] = [
+  {
+    title: "Core",
+    tabs: [
+      { id: "dashboard", label: "Dashboard" },
+      { id: "monte-carlo", label: "Monte Carlo" },
+      { id: "scenario-studio", label: "Scenarios" },
+      { id: "register", label: "Risk Register" },
+    ],
+  },
+  {
+    title: "Advanced Analytics",
+    tabs: [
+      { id: "cognitive-twin", label: "Digital Twin" },
+      { id: "portfolio", label: "Portfolio" },
+      { id: "network", label: "Network" },
+      { id: "bayesian", label: "Bayesian" },
+      { id: "forecasting", label: "Forecasting" },
+    ],
+  },
+  {
+    title: "Risk Methods",
+    tabs: [
+      { id: "bow-tie", label: "Bow-tie" },
+      { id: "fmea", label: "FMEA" },
+      { id: "kri", label: "KRI" },
+      { id: "risk-appetite", label: "Appetite" },
+    ],
+  },
+  {
+    title: "Domain Risks",
+    tabs: [
+      { id: "cyber-risk", label: "Cyber" },
+      { id: "climate-risk", label: "Climate" },
+      { id: "supply-chain", label: "Supply Chain" },
+      { id: "esg", label: "ESG" },
+      { id: "third-party", label: "Vendors" },
+    ],
+  },
+  {
+    title: "Modeling",
+    tabs: [
+      { id: "agent-based", label: "Agent-Based" },
+      { id: "system-dynamics", label: "System Dynamics" },
+      { id: "what-if", label: "What-If" },
+      { id: "stress-lab", label: "Stress Lab" },
+    ],
+  },
+  {
+    title: "Management",
+    tabs: [
+      { id: "risk-transfer", label: "Insurance" },
+      { id: "compliance", label: "Compliance" },
+      { id: "playbooks", label: "Playbooks" },
+      { id: "templates", label: "Templates" },
+      { id: "history", label: "History" },
+      { id: "reports", label: "Reports" },
+      { id: "settings", label: "Settings" },
+    ],
+  },
 ];
+
+// Flatten for quick access
+const ALL_TABS = TAB_GROUPS.flatMap((g) => g.tabs);
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const theme = useUiStore((s) => s.theme);
@@ -60,21 +119,32 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </button>
             </div>
 
-            {/* Tab Navigation */}
-            <nav className="flex gap-1">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === tab.id
-                      ? "bg-gradient-neo text-white shadow-glow"
-                      : "text-textMute hover:text-text hover:bg-surface"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            {/* Tab Navigation - Grouped & Scrollable */}
+            <nav className="overflow-x-auto">
+              <div className="flex gap-6 min-w-max pb-2">
+                {TAB_GROUPS.map((group) => (
+                  <div key={group.title} className="flex flex-col gap-1">
+                    <div className="text-xs font-semibold text-textMute/60 uppercase tracking-wider px-2 mb-1">
+                      {group.title}
+                    </div>
+                    <div className="flex gap-1">
+                      {group.tabs.map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+                            activeTab === tab.id
+                              ? "bg-gradient-neo text-white shadow-glow"
+                              : "text-textMute hover:text-text hover:bg-surface/50"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </nav>
           </div>
         </header>
