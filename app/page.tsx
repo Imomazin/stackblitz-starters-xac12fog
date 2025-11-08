@@ -40,6 +40,7 @@ export default function Page() {
   return (
     <>
       <div className="max-w-[1800px] mx-auto px-6 py-8">
+        {activeTab === "home" && <CoverPage />}
         {activeTab === "dashboard" && <DashboardTab />}
       {activeTab === "monte-carlo" && <MonteCarloTab />}
       {activeTab === "scenario-studio" && <ScenarioStudioTab />}
@@ -193,6 +194,271 @@ function AIChat({ showChat, setShowChat }: { showChat: boolean; setShowChat: (sh
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// COVER PAGE - Stunning Landing Page
+// ============================================================================
+function CoverPage() {
+  const setActiveTab = useUiStore((s) => s.setActiveTab);
+  const addScenario = useScenarioStore((s) => s.addScenario);
+  const [uploadedData, setUploadedData] = useState<File | null>(null);
+
+  const handleDataUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target?.files?.[0];
+    if (file) {
+      setUploadedData(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        alert(`Data uploaded successfully! File: ${file.name}\nRows: ${text.split('\n').length}\n\nNavigating to dashboard...`);
+        setActiveTab('dashboard');
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const loadSampleData = () => {
+    const sampleScenario = {
+      id: `scenario_${Date.now()}`,
+      title: "Enterprise Supply Chain Risk Analysis (Sample Data)",
+      horizonDays: 90,
+      runs: 10000,
+      correlation: "none" as const,
+      variables: [
+        {
+          id: "v1",
+          name: "Supplier Lead Time",
+          dist: "triangular" as DistName,
+          min: 10,
+          mode: 15,
+          max: 30,
+          unit: "days"
+        },
+        {
+          id: "v2",
+          name: "Demand Variability",
+          dist: "normal" as DistName,
+          mean: 1000,
+          stdev: 150,
+          unit: "units"
+        },
+        {
+          id: "v3",
+          name: "Transport Delays",
+          dist: "pert" as DistName,
+          min: 2,
+          mode: 5,
+          max: 12,
+          unit: "days"
+        },
+        {
+          id: "v4",
+          name: "Quality Rejection Rate",
+          dist: "lognormal" as DistName,
+          mean: 0.05,
+          stdev: 0.02,
+          unit: "%"
+        },
+      ],
+      kpi: "delivery_delay" as const,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    addScenario(sampleScenario);
+    alert("Sample data loaded! Navigating to Monte Carlo simulation...");
+    setActiveTab('monte-carlo');
+  };
+
+  return (
+    <div className="space-y-0 -mt-8 -mx-6">
+      {/* Hero Section with Animated Backgrounds */}
+      <section className="relative min-h-[600px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-background via-surface to-background">
+        {/* Animated Background Blobs */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-20 left-20 w-64 h-64 bg-primary rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-secondary rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-accent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
+
+        {/* Hero Content */}
+        <div className="relative z-10 text-center px-6 py-16">
+          <div className="mb-6">
+            <div className="inline-block p-3 bg-gradient-neo rounded-2xl shadow-glow mb-4">
+              <TrendingUp className="w-12 h-12 text-white" />
+            </div>
+          </div>
+
+          <h1 className="text-6xl md:text-7xl font-bold mb-6 text-gradient">
+            LUMINA RISK
+          </h1>
+
+          <p className="text-2xl text-textMute mb-4">
+            Illuminate Your Risk Landscape with AI-Powered Precision
+          </p>
+
+          <p className="text-lg text-textMute/80 mb-12 max-w-3xl mx-auto">
+            The world&apos;s most comprehensive enterprise risk management platform.
+            29 advanced modules. Real-time AI insights. Digital twins. Monte Carlo simulations.
+            All in one beautiful interface.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex gap-4 justify-center flex-wrap">
+            <button onClick={() => setActiveTab('dashboard')} className="btn-primary text-lg px-8 py-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              View Dashboards
+            </button>
+            <button onClick={loadSampleData} className="btn-secondary text-lg px-8 py-4 flex items-center gap-2">
+              <Play className="w-5 h-5" />
+              Load Sample Data
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Bar */}
+      <section className="bg-gradient-neo text-white py-12 px-6">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-4xl font-bold mb-2">29</div>
+              <div className="text-sm opacity-90">Enterprise Modules</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold mb-2">200K+</div>
+              <div className="text-sm opacity-90">Monte Carlo Runs</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold mb-2">AI</div>
+              <div className="text-sm opacity-90">Powered Insights</div>
+            </div>
+            <div>
+              <div className="text-4xl font-bold mb-2">Real-time</div>
+              <div className="text-sm opacity-90">Risk Intelligence</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-16 px-6 bg-background">
+        <div className="max-w-[1400px] mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-4">Enterprise Risk Intelligence</h2>
+          <p className="text-center text-textMute mb-12 max-w-2xl mx-auto">
+            Comprehensive suite of advanced analytics, AI-powered insights, and industry-specific risk modules
+          </p>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Feature Cards */}
+            <div onClick={() => setActiveTab('monte-carlo')} className="card hover:shadow-glow transition-all cursor-pointer group">
+              <div className="text-4xl mb-4">🎲</div>
+              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">AI Risk Analysis</h3>
+              <p className="text-sm text-textMute">
+                Run Monte Carlo simulations with AI-powered strategic insights and action plans
+              </p>
+            </div>
+
+            <div onClick={() => setActiveTab('cognitive-twin')} className="card hover:shadow-glow transition-all cursor-pointer group">
+              <div className="text-4xl mb-4">🤖</div>
+              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Digital Twins</h3>
+              <p className="text-sm text-textMute">
+                Cognitive digital twins with real-time sensor data and predictive AI models
+              </p>
+            </div>
+
+            <div onClick={() => setActiveTab('portfolio')} className="card hover:shadow-glow transition-all cursor-pointer group">
+              <div className="text-4xl mb-4">📊</div>
+              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Portfolio Analytics</h3>
+              <p className="text-sm text-textMute">
+                VaR/CVaR, correlation analysis, and diversification benefit metrics
+              </p>
+            </div>
+
+            <div onClick={() => setActiveTab('bow-tie')} className="card hover:shadow-glow transition-all cursor-pointer group">
+              <div className="text-4xl mb-4">🎯</div>
+              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Bow-Tie Analysis</h3>
+              <p className="text-sm text-textMute">
+                Visual cause-consequence mapping with prevention and mitigation controls
+              </p>
+            </div>
+
+            <div onClick={() => setActiveTab('risk-appetite')} className="card hover:shadow-glow transition-all cursor-pointer group">
+              <div className="text-4xl mb-4">🎚️</div>
+              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Risk Appetite</h3>
+              <p className="text-sm text-textMute">
+                Define and monitor risk tolerance across financial, operational, and strategic domains
+              </p>
+            </div>
+
+            <div onClick={() => setActiveTab('fmea')} className="card hover:shadow-glow transition-all cursor-pointer group">
+              <div className="text-4xl mb-4">⚠️</div>
+              <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">FMEA</h3>
+              <p className="text-sm text-textMute">
+                Failure Mode and Effects Analysis with RPN scoring and criticality assessment
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Data Upload Section */}
+      <section className="py-16 px-6 bg-surface/30">
+        <div className="max-w-[1000px] mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-4">Test the Platform</h2>
+          <p className="text-center text-textMute mb-12">
+            Upload your own risk data or start with our sample dataset to explore all features
+          </p>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Upload Data */}
+            <div className="card bg-surface/80 backdrop-blur">
+              <div className="text-6xl mb-4">📊</div>
+              <h3 className="text-xl font-bold mb-3">Upload Your Data</h3>
+              <p className="text-sm text-textMute mb-6">
+                Upload CSV or Excel files with your risk variables. We&apos;ll automatically parse and visualize them.
+              </p>
+              <label className="btn-primary cursor-pointer inline-flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Choose File
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleDataUpload}
+                  className="hidden"
+                />
+              </label>
+              {uploadedData && (
+                <p className="mt-3 text-sm text-success">✓ {uploadedData.name}</p>
+              )}
+            </div>
+
+            {/* Sample Data */}
+            <div className="card bg-surface/80 backdrop-blur">
+              <div className="text-6xl mb-4">🎯</div>
+              <h3 className="text-xl font-bold mb-3">Try Sample Data</h3>
+              <p className="text-sm text-textMute mb-6">
+                Load a pre-configured supply chain risk scenario with 4 variables and run instant simulations.
+              </p>
+              <button onClick={loadSampleData} className="btn-secondary inline-flex items-center gap-2">
+                <Play className="w-4 h-4" />
+                Load Sample Scenario
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-16 px-6 text-center bg-gradient-neo text-white">
+        <h2 className="text-3xl font-bold mb-4">Ready to Illuminate Your Risks?</h2>
+        <p className="mb-8 opacity-90">Join the world&apos;s leading organizations using AI-powered risk intelligence</p>
+        <button onClick={() => setActiveTab('dashboard')} className="bg-white text-primary px-8 py-4 rounded-lg font-bold text-lg hover:scale-105 transition-transform">
+          Enter Platform →
+        </button>
+      </section>
     </div>
   );
 }

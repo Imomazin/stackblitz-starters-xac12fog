@@ -9,6 +9,12 @@ import type { TabName } from "./types";
 // Enterprise-grade navigation with categories
 const TAB_GROUPS: { title: string; tabs: { id: TabName; label: string; icon?: string }[] }[] = [
   {
+    title: "Start",
+    tabs: [
+      { id: "home", label: "Home" },
+    ],
+  },
+  {
     title: "Core",
     tabs: [
       { id: "dashboard", label: "Dashboard" },
@@ -85,10 +91,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>RiskCoachNeo - Simulation-Grade Risk Workstation</title>
+        <title>Lumina Risk - AI-Powered Enterprise Risk Intelligence Platform</title>
         <meta
           name="description"
-          content="Professional Monte Carlo simulation platform for SME risk management"
+          content="World-class risk management platform with AI insights, Monte Carlo simulations, Digital Twins, and 29 enterprise modules"
         />
       </head>
       <body>
@@ -103,9 +109,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-gradient">
-                    RiskCoach<sub className="text-xs">Neo</sub>
+                    LUMINA RISK
                   </h1>
-                  <p className="text-xs text-textMute">Simulation-Grade Risk Workstation</p>
+                  <p className="text-xs text-textMute">AI-Powered Enterprise Intelligence</p>
                 </div>
               </div>
 

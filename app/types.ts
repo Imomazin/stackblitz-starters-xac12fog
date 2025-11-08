@@ -182,6 +182,7 @@ export type ExportFormat = "pdf" | "csv" | "json" | "png";
 
 // Tab names (Enterprise Platform - 25+ tabs)
 export type TabName =
+  | "home"
   | "dashboard"
   | "monte-carlo"
   | "scenario-studio"

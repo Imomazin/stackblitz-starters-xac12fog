@@ -28,7 +28,7 @@ export const useUiStore = create<UiState>()(
   persist(
     (set) => ({
       ...DEFAULT_SETTINGS,
-      activeTab: "dashboard",
+      activeTab: "home",
 
       setActiveTab: (tab) => set({ activeTab: tab }),
 
@@ -42,7 +42,7 @@ export const useUiStore = create<UiState>()(
       updateSettings: (settings) => set(settings),
     }),
     {
-      name: "riskcoach_neo_ui",
+      name: "lumina_risk_ui",
     }
   )
 );
