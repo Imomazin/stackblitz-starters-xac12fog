@@ -1,164 +1,336 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import Loader from "./components/Loader";
-import PlanCard from "./components/PlanCard";
-import NavBar from "./components/NavBar";
-import Particles from "./components/Particles";
-import TopMetrics from "./components/TopMetrics";
-import TemplatesDrawer from "./components/TemplatesDrawer";
-import HistoryPanel from "./components/HistoryPanel";
-import ConfidenceGauge from "./components/ConfidenceGauge";
-import HeatmapMini from "./components/HeatmapMini";
-import Tour from "./components/Tour";
-import { loadHistory, makeSaved, useCoach } from "./store/useCoach";
-import { clampInput, redactPII } from "./lib/redact";
 
-type CoachResponse = { reply?: string; plan?: any; error?: string; score?: number };
+import { useState, useMemo } from "react";
 
-export default function Home() {
-  const [text, setText] = useState<string>("");
-  const [out, setOut] = useState<CoachResponse | null>(null);
-  const [status, setStatus] = useState<"idle"|"thinking"|"done"|"error">("idle");
+type RiskCoachResponse = {
+  plan?: any;
+  reply?: string;
+  score?: number; // 0..1
+  text?: string;  // human-friendly text block for UI
+  error?: string;
+  details?: unknown;
+  rating?: string;
+  checklist?: string[];
+  _source?: string;
+  _requestId?: string;
+  _model?: string;
+};
 
-  const add = useCoach(s => s.add);
-  const items = useCoach(s => s.items);
+export default function Page() {
+  // form/input
+  const [message, setMessage] = useState(
+    "Supplier shipment delayed by 3 weeks due to port congestion. Stock covers 10 days."
+  );
 
-  useEffect(() => loadHistory(), []);
-  useEffect(() => { if (!text) setOut(null); }, [text]);
+  // ui state
+  const [loading, setLoading] = useState(false);
+  const [out, setOut] = useState<RiskCoachResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleClick() {
-    if (!text.trim()) return;
-    setStatus("thinking"); setOut(null);
+  const confidencePct = useMemo(() => {
+    if (!out?.score && out?.score !== 0) return null;
+    const pct = Math.round((Math.min(Math.max(out.score, 0), 1)) * 100);
+    return pct;
+  }, [out?.score]);
 
-    // compliance helpers
-    const safe = redactPII(clampInput(text));
-    console.log("[Risk Coach] Sending request with message:", safe);
+  const displayText = useMemo(() => {
+    if (!out) return "";
+    // Try different fields for display text
+    if (out.text) return out.text;
+    if (out.reply) return out.reply;
+    if (out.plan?.summary) return out.plan.summary;
+    return "";
+  }, [out]);
+
+  async function onSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    setLoading(true);
+    setError(null);
+    setOut(null);
+
+    console.log("[VLV Risk Coach] 🚀 Submitting request...");
+    console.log("[VLV Risk Coach] Message:", message);
 
     try {
       const res = await fetch("/api/riskcoach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: safe }),
+        body: JSON.stringify({ message }),
       });
 
-      console.log("[Risk Coach] Response status:", res.status, res.statusText);
+      console.log("[VLV Risk Coach] 📡 Response status:", res.status, res.statusText);
 
       if (!res.ok) {
-        const errorText = await res.text();
-        console.error("[Risk Coach] API error:", errorText);
-        setOut({ reply: `API error (${res.status}): ${errorText}` });
-        setStatus("error");
-        return;
+        // capture raw error body
+        let raw = "";
+        try {
+          raw = await res.text();
+          console.error("[VLV Risk Coach] ❌ Error response body:", raw);
+        } catch (e) {
+          console.error("[VLV Risk Coach] ❌ Could not read error body:", e);
+        }
+        throw new Error(`HTTP ${res.status}: ${raw || res.statusText}`);
       }
 
-      const data = await res.json() as CoachResponse;
-      console.log("[Risk Coach] Response data:", data);
-      console.log("[Risk Coach] Has plan:", !!data.plan);
-      console.log("[Risk Coach] Has reply:", !!data.reply);
+      const data = (await res.json()) as RiskCoachResponse;
+      console.log("[VLV Risk Coach] ✅ Success! Response data:", data);
+      console.log("[VLV Risk Coach] 📊 Has plan:", !!data.plan);
+      console.log("[VLV Risk Coach] 📝 Has reply:", !!data.reply);
+      console.log("[VLV Risk Coach] 🎯 Score:", data.score);
+      console.log("[VLV Risk Coach] 🔧 Source:", data._source);
+      console.log("[VLV Risk Coach] 🆔 Request ID:", data._requestId);
 
       setOut(data);
-      setStatus("done");
-      add(makeSaved(safe, data));
-    } catch (err) {
-      console.error("[Risk Coach] Caught error:", err);
-      setOut({ reply: "Network error. Try again." });
-      setStatus("error");
+    } catch (err: any) {
+      console.error("[VLV Risk Coach] 💥 Caught error:", err);
+      const errorMsg = err?.message || "Something went wrong contacting the API.";
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+      console.log("[VLV Risk Coach] ✨ Request complete");
     }
   }
 
-  function loadFromHistory(id: string) {
-    const found = items.find(x => x.id === id);
-    if (!found) return;
-    setText(found.input);
-    setOut({ plan: found.plan, reply: found.reply, score: 0.7 });
+  function Copy({ text }: { text: string }) {
+    return (
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(text);
+          console.log("[VLV Risk Coach] 📋 Copied to clipboard");
+        }}
+        className="px-3 py-1 text-sm rounded-md border border-neutral-700 hover:bg-neutral-800 hover:border-neutral-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={!text}
+        title="Copy to clipboard"
+      >
+        Copy
+      </button>
+    );
   }
 
-  const confidence = useMemo(() => {
-    const raw = out?.plan?.confidence || out?.score || 0.66;
-    if (typeof raw === "number") return raw;
-    const m = String(raw || "").match(/(\d{1,3})%/);
-    return m ? Math.min(1, Math.max(0, Number(m[1]) / 100)) : 0.66;
-  }, [out]);
+  // Helper to render plan sections
+  function PlanSection({ title, items }: { title: string; items?: string[] }) {
+    if (!items || items.length === 0) return null;
+    return (
+      <div className="mb-4">
+        <h4 className="text-sm font-medium text-neutral-300 mb-2">{title}</h4>
+        <ul className="space-y-1.5">
+          {items.map((item, idx) => (
+            <li key={idx} className="text-sm text-neutral-400 flex items-start gap-2">
+              <span className="text-indigo-400 mt-0.5">•</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
 
   return (
-    <main className="min-h-screen relative overflow-hidden">
-      <div className="absolute inset-0 bg-drift animate-drift pointer-events-none" />
-      <Particles />
-      <NavBar />
-      <Tour />
+    <div className="min-h-screen bg-neutral-950 text-neutral-100">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <header className="mb-8">
+          <h1 className="text-2xl font-semibold">VLV Risk Coach</h1>
+          <p className="text-neutral-400">
+            Describe the situation. Get a step-by-step plan.
+          </p>
+          {out?._source && (
+            <p className="text-xs text-neutral-600 mt-1">
+              Powered by: {out._source === 'anthropic' ? '🤖 Anthropic Claude' : '📦 Mock Data'}
+              {out._model && ` (${out._model})`}
+            </p>
+          )}
+        </header>
 
-      <div className="relative max-w-7xl mx-auto px-4 py-6 space-y-6">
-        <TopMetrics />
-
-        <div className="grid md:grid-cols-5 gap-6">
-          {/* Left column */}
-          <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="md:col-span-2 space-y-4">
-            <div className="bg-surface border border-border rounded-2xl p-5 shadow-inkg">
-              <h1 className="text-xl font-semibold">Risk Coach</h1>
-              <p className="text-sm text-textMute">Describe the situation. Get a step by step plan.</p>
+        {/* Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: form + tips */}
+          <section className="lg:col-span-1 space-y-4">
+            <form
+              onSubmit={onSubmit}
+              className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4"
+            >
+              <label className="block text-sm mb-2 text-neutral-300">
+                Risk Coach
+              </label>
               <textarea
-                value={text}
-                onChange={(e)=>setText(e.target.value)}
-                rows={7}
-                className="mt-3 w-full rounded-lg border border-border bg-bg/60 p-3 focus:ring-2 focus:ring-primary outline-none"
-                placeholder="Supplier delay, 10 days of stock, no backup supplier..."
-                maxLength={800}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="w-full h-40 rounded-lg bg-neutral-900 border border-neutral-800 px-3 py-2 outline-none focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20 transition-all"
+                placeholder="e.g. Supplier delay, 10 days of stock, no backup supplier…"
               />
-              <div className="mt-3 flex items-center gap-3">
+              <div className="mt-4 flex items-center gap-3">
                 <button
-                  onClick={handleClick}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-bg bg-gradient-to-r from-primary to-secondary hover:opacity-95 shadow-glow disabled:opacity-60"
-                  disabled={status === "thinking"}
+                  type="submit"
+                  disabled={loading || !message.trim()}
+                  className="px-4 py-2 rounded-md bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                 >
-                  {status === "thinking" ? <Loader /> : null}
-                  {status === "thinking" ? "Thinking..." : "Get Guidance"}
+                  {loading ? "Thinking…" : "Get Guidance"}
                 </button>
-                <span className="text-xs text-textMute">PII is redacted and length is limited for safety.</span>
-              </div>
-            </div>
-
-            <TemplatesDrawer onPick={(t) => setText(t)} />
-            <HistoryPanel onLoad={(id) => loadFromHistory(id)} />
-          </motion.div>
-
-          {/* Right column */}
-          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="md:col-span-3 space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="rounded-2xl bg-surface border border-border p-4">
-                <ConfidenceGauge score={confidence} />
-              </div>
-              <div className="rounded-2xl bg-surface border border-border p-4">
-                <div className="text-sm font-medium mb-1">Activity last 28 days</div>
-                <HeatmapMini />
-              </div>
-            </div>
-
-            {status === "idle" && !out && (
-              <div className="h-[420px] border border-dashed border-border rounded-2xl bg-surface/60 flex items-center justify-center text-textMute">
-                Your adaptive plan will appear here.
-              </div>
-            )}
-
-            {status === "thinking" && (
-              <div className="h-[420px] border border-border rounded-2xl bg-surface p-6 flex items-center gap-3 text-text">
-                <Loader />
-                <span className="bg-gradient-to-r from-text/30 via-text/70 to-text/30 bg-clip-text text-transparent shimmer animate-shimmer">
-                  Generating your plan...
+                <span className="text-xs text-neutral-500">
+                  PII is redacted and length is limited for safety.
                 </span>
               </div>
-            )}
+            </form>
 
-            {status !== "thinking" && out?.plan && <PlanCard plan={out.plan} />}
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+              <h3 className="text-sm text-neutral-300 mb-2">Templates</h3>
+              <div className="space-y-2">
+                {[
+                  "Supplier shipment delayed by 3 weeks due to port congestion. Stock covers 10 days.",
+                  "Payment processor outage impacted 12% of checkouts for 90 minutes.",
+                  "Key engineer on leave. Delivery risk on Release 1.3 within two weeks.",
+                  "New regulation may affect data retention policy. Evaluate in 30 days.",
+                ].map((t, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setMessage(t);
+                      console.log("[VLV Risk Coach] 📝 Template selected:", idx);
+                    }}
+                    className="w-full text-left text-sm rounded-md border border-neutral-800 hover:bg-neutral-900/70 hover:border-neutral-700 px-3 py-2 transition-colors"
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
 
-            {status !== "thinking" && !out?.plan && out?.reply && (
-              <div className="bg-surface border border-border rounded-2xl p-5">
-                <pre className="whitespace-pre-wrap text-sm">{out.reply}</pre>
+          {/* Right: output */}
+          <section className="lg:col-span-2 space-y-4">
+            {/* Error panel */}
+            {error && (
+              <div className="rounded-xl border border-red-900/60 bg-red-900/20 p-4 text-red-200">
+                <div className="font-medium mb-1">❌ API Error</div>
+                <pre className="whitespace-pre-wrap text-sm">{error}</pre>
+                <div className="mt-3 text-xs text-red-300">
+                  💡 Check browser console (F12) for detailed logs
+                </div>
               </div>
             )}
-          </motion.div>
+
+            {/* Confidence + Activity cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+                <div className="text-sm text-neutral-400">Confidence</div>
+                <div className="mt-2 text-3xl font-semibold">
+                  {confidencePct === null ? "—" : `${confidencePct}%`}
+                </div>
+                <div className="text-xs text-neutral-500 mt-1">
+                  {out?.plan?.rating || "Basic heuristic (0–100)"}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+                <div className="text-sm text-neutral-400">Plans today</div>
+                <div className="mt-2 text-3xl font-semibold">
+                  {out ? 1 : 0}
+                </div>
+              </div>
+              <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+                <div className="text-sm text-neutral-400">Activity (last 28d)</div>
+                <div className="mt-2 text-3xl font-semibold">—</div>
+              </div>
+            </div>
+
+            {/* Human-friendly guidance */}
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm text-neutral-300">Guidance</h3>
+                <Copy text={displayText} />
+              </div>
+              <div className="min-h-[140px] rounded-lg bg-neutral-950/60 border border-neutral-800 p-3">
+                {!out && !loading && (
+                  <div className="text-neutral-500 text-sm">
+                    Your adaptive plan will appear here.
+                  </div>
+                )}
+                {loading && (
+                  <div className="text-neutral-400 text-sm flex items-center gap-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-indigo-500 border-t-transparent rounded-full"></div>
+                    Generating your plan...
+                  </div>
+                )}
+                {!loading && !!displayText && (
+                  <pre className="whitespace-pre-wrap text-sm text-neutral-200">
+                    {displayText}
+                  </pre>
+                )}
+              </div>
+            </div>
+
+            {/* Structured Plan with Actions */}
+            {out?.plan && (
+              <div className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm text-neutral-300">Action Plan</h3>
+                  <Copy text={JSON.stringify(out.plan, null, 2)} />
+                </div>
+                <div className="space-y-4">
+                  <PlanSection title="⚡ Next 24 Hours" items={out.plan.actions_24h} />
+                  <PlanSection title="📅 Next 7 Days" items={out.plan.actions_7d} />
+                  <PlanSection title="🗓️ Next 30 Days" items={out.plan.actions_30d} />
+
+                  {out.plan.owners && out.plan.owners.length > 0 && (
+                    <div className="pt-3 border-t border-neutral-800">
+                      <h4 className="text-sm font-medium text-neutral-300 mb-2">👥 Key Owners</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {out.plan.owners.map((owner: string, idx: number) => (
+                          <span key={idx} className="text-xs bg-neutral-800 text-neutral-300 px-2 py-1 rounded">
+                            {owner}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {out.checklist && out.checklist.length > 0 && (
+                    <div className="pt-3 border-t border-neutral-800">
+                      <h4 className="text-sm font-medium text-neutral-300 mb-2">✅ Checklist</h4>
+                      <ul className="space-y-1.5">
+                        {out.checklist.map((item, idx) => (
+                          <li key={idx} className="text-sm text-neutral-400 flex items-start gap-2">
+                            <span className="text-green-500 mt-0.5">☐</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {out.plan.template && (
+                    <div className="pt-3 border-t border-neutral-800">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-neutral-300">📧 Communication Template</h4>
+                        <Copy text={out.plan.template} />
+                      </div>
+                      <pre className="text-xs text-neutral-400 bg-neutral-950/60 p-3 rounded border border-neutral-800 whitespace-pre-wrap">
+                        {out.plan.template}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Raw plan JSON (debugging) */}
+            <details className="rounded-2xl border border-neutral-800 bg-neutral-900/50 p-4">
+              <summary className="text-sm text-neutral-400 cursor-pointer hover:text-neutral-300">
+                🔍 Debug: Raw Response (click to expand)
+              </summary>
+              <div className="mt-3 min-h-[120px] rounded-lg bg-neutral-950/60 border border-neutral-800 p-3">
+                {out ? (
+                  <pre className="text-xs text-neutral-300 overflow-x-auto">
+                    {JSON.stringify(out, null, 2)}
+                  </pre>
+                ) : (
+                  <div className="text-neutral-500 text-sm">No data yet.</div>
+                )}
+              </div>
+            </details>
+          </section>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
