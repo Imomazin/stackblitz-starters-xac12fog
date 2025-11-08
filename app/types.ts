@@ -1,160 +1,184 @@
-// app/types.ts - Strict TypeScript contracts for Risk Coach Neo
+// app/types.ts - Comprehensive TypeScript contracts for RiskCoachNeo
 
 export type DistName = "triangular" | "pert" | "normal" | "lognormal";
+export type CorrelationModel = "pearson" | "spearman" | "none";
 
 export type ScenarioVariable = {
   id: string;
   name: string;
   unit?: string;
-  distribution: DistName;
-  // Distribution parameters
+  dist: DistName;
   min?: number;
-  mostLikely?: number; // mode for triangular/PERT
+  mode?: number; // for triangular/PERT
   max?: number;
-  mean?: number; // μ for normal/lognormal
-  stdDev?: number; // σ for normal/lognormal
-  lambda?: number; // PERT shape param (default 4)
+  mean?: number; // for normal/lognormal
+  stdev?: number;
 };
 
-export type KPIType = "days_out_of_stock" | "cost_overrun" | "delivery_delay" | "service_level";
-
-export type CorrelationType = "pearson" | "spearman" | "none";
-
-export type Scenario = {
+export type ScenarioConfig = {
   id: string;
   title: string;
-  description?: string;
-  timeHorizonDays: number;
-  nRuns: number; // 1000 - 50000
-  volatility: number; // global σ multiplier
-  correlationType: CorrelationType;
-  correlationMatrix?: number[][]; // n×n matrix if needed
+  horizonDays: number;
+  runs: number; // 1k–200k
+  seed?: number; // RNG seed
+  correlation: CorrelationModel;
+  corrMatrix?: number[][]; // optional NxN, -1..+1
   variables: ScenarioVariable[];
-  primaryKPI: KPIType;
-  createdAt: string;
-  updatedAt: string;
+  kpi: "days_out_of_stock" | "cost_overrun" | "delivery_delay" | "service_level";
+  createdAt: number;
+  updatedAt: number;
 };
 
-export type SimulationRun = {
-  runId: number;
-  values: Record<string, number>; // variable.id -> sampled value
-  kpiResult: number; // computed KPI
-};
-
-export type Percentiles = {
+export type RunSummary = {
+  id: string;
+  scenarioId: string;
+  startedAt: number;
+  completedAt: number;
+  durationMs: number;
+  runs: number;
+  seed: number;
+  kpi: ScenarioConfig["kpi"];
+  mean: number;
+  stdev: number;
+  skewness: number;
+  cv: number;
   p5: number;
   p10: number;
-  p50: number; // median
+  p50: number;
   p90: number;
   p95: number;
 };
 
-export type SimulationResult = {
-  scenarioId: string;
-  runCount: number;
-  percentiles: Percentiles;
-  mean: number;
-  stdDev: number;
-  cv: number; // coefficient of variation
-  skewness: number;
-  runs: SimulationRun[]; // store subset for inspection
+export type SimulationOutputs = {
+  summary: RunSummary;
   histogram: { bin: number; count: number }[];
-  tornadoChart: { variable: string; sensitivity: number }[]; // sorted by impact
-  elapsedMs: number;
-  timestamp: string;
+  tornado: { variable: string; sensitivity: number }[];
+  lec: { x: number; y: number }[]; // Loss exceedance curve
+  samples?: Float32Array; // optional compact storage
 };
 
-export type RiskStatus = "open" | "mitigating" | "closed";
-
-export type RiskCategory =
-  | "operational"
-  | "financial"
-  | "strategic"
-  | "compliance"
-  | "technical"
-  | "reputational";
-
-export type RiskRegisterItem = {
+export type RiskItem = {
   id: string;
   title: string;
-  category: RiskCategory;
-  description: string;
-  owner: string;
-  likelihood: number; // 1-5
-  impact: number; // 1-5
-  riskScore: number; // L × I
-  mitigation: string;
-  residualLikelihood: number; // 1-5 after mitigation
-  residualImpact: number; // 1-5 after mitigation
-  residualScore: number; // RL × RI
-  status: RiskStatus;
-  dueDate?: string; // ISO date
-  linkedScenarioIds: string[];
-  createdAt: string;
-  updatedAt: string;
+  category: "Supply" | "Ops" | "Finance" | "Regulatory" | "People" | "Security" | "Other";
+  description?: string;
+  owner?: string;
+  likelihood: 1 | 2 | 3 | 4 | 5;
+  impact: 1 | 2 | 3 | 4 | 5;
+  mitigation?: string;
+  residualLikelihood?: 1 | 2 | 3 | 4 | 5;
+  residualImpact?: 1 | 2 | 3 | 4 | 5;
+  status: "open" | "mitigating" | "closed";
+  dueDate?: string;
+  linkedScenarioIds?: string[];
+  createdAt: number;
+  updatedAt: number;
 };
 
-export type AIPlanRequest = {
-  scenarioTitle: string;
-  scenarioDescription?: string;
-  variables: ScenarioVariable[];
-  timeHorizonDays: number;
-  simulationSummary?: string; // optional context from sim results
-};
-
-export type AIPlanResponse = {
-  summary: string; // executive summary (6 bullets)
-  actions: string[]; // 3 key actions
-  timeline: string; // suggested timeline
-  confidence?: number; // 0-1
-  _source: "ai" | "local"; // whether AI or fallback
-  _model?: string;
-  _requestId?: string;
-};
-
-export type TemplateType =
-  | "supply_chain_delay"
-  | "payment_outage"
-  | "regulatory_change"
-  | "security_incident"
-  | "vendor_bankruptcy"
-  | "staff_absence"
-  | "currency_shock";
-
-export type Template = {
+export type AiPlan = {
   id: string;
-  type: TemplateType;
-  name: string;
-  description: string;
-  icon: string; // emoji
-  scenario: Omit<Scenario, "id" | "createdAt" | "updatedAt">;
-  riskSeeds?: Partial<RiskRegisterItem>[]; // optional pre-populated risks
+  scenarioId?: string;
+  score: number; // confidence 0..1
+  sections: { title: string; bullets: string[] }[];
+  actions: { title: string; owner?: string; due?: string }[];
+  narrative: string;
+  createdAt: number;
+  provider: "openrouter" | "local";
 };
 
-export type HistoryEntry = {
+export type StressScenario = {
   id: string;
-  scenarioTitle: string;
-  timestamp: string;
-  result: SimulationResult;
-  scenario: Scenario;
-};
-
-export type TelemetryEvent = {
-  event: string;
-  duration?: number;
-  metadata?: Record<string, unknown>;
-  timestamp: string;
+  title: string;
+  baseScenarioId: string;
+  shocks: { variableId: string; multiplier: number }[];
+  regimeSwitch?: {
+    name: string;
+    corrMatrix: number[][];
+  };
+  createdAt: number;
 };
 
 export type AppSettings = {
   theme: "dark" | "light";
+  maxRuns: number; // default 50k, max 200k
+  rngType: "mulberry32" | "xorshift128";
+  defaultSeed: number;
+  correlationMode: CorrelationModel;
+  streamingChunkSize: number;
+  retainSamples: boolean;
   telemetryEnabled: boolean;
-  defaultNRuns: number;
-  defaultVolatility: number;
-  openRouterApiKey?: string; // optional
 };
 
-// Utility types
-export type ExportFormat = "pdf" | "csv" | "json";
+export type ComparisonSet = {
+  id: string;
+  title: string;
+  runIds: string[];
+  createdAt: number;
+};
 
-export type TabName = "simulation" | "register" | "plan" | "history";
+// Worker messages
+export type WorkerRequest = {
+  type: "run";
+  payload: {
+    scenario: ScenarioConfig;
+    chunkSize: number;
+  };
+};
+
+export type WorkerResponse =
+  | {
+      type: "progress";
+      payload: {
+        completed: number;
+        total: number;
+        eta: number; // milliseconds
+        partial?: Partial<SimulationOutputs>;
+      };
+    }
+  | {
+      type: "complete";
+      payload: SimulationOutputs;
+    }
+  | {
+      type: "error";
+      payload: {
+        message: string;
+        stack?: string;
+      };
+    };
+
+// Template structure
+export type Template = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: "supply" | "finance" | "ops" | "regulatory" | "security" | "people" | "other";
+  scenario: Omit<ScenarioConfig, "id" | "createdAt" | "updatedAt">;
+  riskSeeds?: Partial<RiskItem>[];
+};
+
+// Export formats
+export type ExportFormat = "pdf" | "csv" | "json" | "png";
+
+// Tab names
+export type TabName =
+  | "dashboard"
+  | "monte-carlo"
+  | "scenario-studio"
+  | "register"
+  | "stress-lab"
+  | "playbooks"
+  | "templates"
+  | "history"
+  | "reports"
+  | "settings";
+
+// Keyboard shortcuts
+export type KeyboardShortcut = {
+  key: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  action: string;
+  handler: () => void;
+};
