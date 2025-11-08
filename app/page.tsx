@@ -1,26 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Play, Plus, Trash2, BarChart3, AlertTriangle } from "lucide-react";
 import {
-  BarChart3,
-  Sparkles,
-  Download,
-  Moon,
-  Sun,
-  Play,
-  Settings,
-  BookTemplate,
-  ListChecks,
-  TrendingUp,
-  Plus,
-  Trash2,
-} from "lucide-react";
-import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -28,755 +15,713 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-import type {
-  Scenario,
-  ScenarioVariable,
-  SimulationResult,
-  RiskRegisterItem,
-  TabName,
-  AIPlanResponse,
-  Template,
-  DistName,
-  KPIType,
-} from "./types";
+import { useUiStore } from "./store/ui";
+import { useScenarioStore } from "./store/scenario";
+import { useRunsStore } from "./store/runs";
+import { useRegisterStore } from "./store/register";
+import { runMonteCarloSync } from "@/lib/montecarlo";
+import type { ScenarioConfig, ScenarioVariable, RiskItem } from "./types";
 
-import { runMonteCarlo } from "@/lib/monte-carlo";
-import { getAllTemplates } from "@/lib/templates";
-import {
-  getSettings,
-  saveSettings,
-  getHistory,
-  saveHistory,
-  getRiskRegister,
-  saveRiskItem,
-  deleteRiskItem,
-  logTelemetry,
-} from "@/lib/storage";
-import { generateId, formatNumber, formatPercent, downloadFile } from "@/lib/utils";
+function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
 
-export default function RiskCoachNeo() {
-  // ========================================================================
-  // State Management
-  // ========================================================================
+// ============================================================================
+// Dashboard Tab
+// ============================================================================
+function DashboardTab() {
+  const runs = useRunsStore((s) => s.runs);
+  const scenarios = useScenarioStore((s) => s.scenarios);
+  const risks = useRegisterStore((s) => s.risks);
 
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [activeTab, setActiveTab] = useState<TabName>("simulation");
+  const latestRun = runs[0];
 
-  // Scenario state
-  const [scenario, setScenario] = useState<Scenario>({
-    id: generateId(),
-    title: "Supply Chain Risk Analysis",
-    description: "Assess impact of supplier delays",
-    timeHorizonDays: 30,
-    nRuns: 10000,
-    volatility: 1.0,
-    correlationType: "none",
-    primaryKPI: "days_out_of_stock",
-    variables: [
-      {
-        id: generateId(),
-        name: "Supplier Delay",
-        unit: "days",
-        distribution: "pert",
-        min: 7,
-        mostLikely: 14,
-        max: 30,
-        lambda: 4,
-      },
-      {
-        id: generateId(),
-        name: "Stock Coverage",
-        unit: "days",
-        distribution: "triangular",
-        min: 8,
-        mostLikely: 12,
-        max: 18,
-      },
-    ],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
+  return (
+    <div className="max-w-[1800px] mx-auto px-6 py-8">
+      <h2 className="text-2xl font-bold mb-6">Executive Dashboard</h2>
 
-  const [simResult, setSimResult] = useState<SimulationResult | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [aiPlan, setAiPlan] = useState<AIPlanResponse | null>(null);
-  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+      {/* KPI Tiles */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="card">
+          <div className="text-sm text-textMute">Total Scenarios</div>
+          <div className="text-3xl font-bold mt-2">{scenarios.length}</div>
+        </div>
+        <div className="card">
+          <div className="text-sm text-textMute">Simulations Run</div>
+          <div className="text-3xl font-bold mt-2">{runs.length}</div>
+        </div>
+        <div className="card">
+          <div className="text-sm text-textMute">Open Risks</div>
+          <div className="text-3xl font-bold mt-2">
+            {risks.filter((r) => r.status === "open").length}
+          </div>
+        </div>
+        <div className="card">
+          <div className="text-sm text-textMute">Avg P90</div>
+          <div className="text-3xl font-bold mt-2">
+            {latestRun ? latestRun.summary.p90.toFixed(1) : "—"}
+          </div>
+        </div>
+      </div>
 
-  // Risk Register state
-  const [riskRegister, setRiskRegister] = useState<RiskRegisterItem[]>([]);
-  const [templates] = useState<Template[]>(getAllTemplates());
+      {/* Latest Run Summary */}
+      {latestRun && (
+        <div className="card">
+          <h3 className="font-semibold mb-4">Latest Simulation</h3>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={latestRun.histogram.slice(0, 20)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="bin" stroke="hsl(var(--text-mute))" fontSize={10} />
+                  <YAxis stroke="hsl(var(--text-mute))" fontSize={10} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--surface))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-textMute">Mean:</span>
+                <span className="font-semibold">{latestRun.summary.mean.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-textMute">Std Dev:</span>
+                <span className="font-semibold">{latestRun.summary.stdev.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-textMute">P50:</span>
+                <span className="font-semibold">{latestRun.summary.p50.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-textMute">P90:</span>
+                <span className="font-semibold">{latestRun.summary.p90.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-textMute">Runs:</span>
+                <span className="font-semibold">{latestRun.summary.runs.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-textMute">Duration:</span>
+                <span className="font-semibold">{latestRun.summary.durationMs.toFixed(0)}ms</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-  // ========================================================================
-  // Effects
-  // ========================================================================
+      {!latestRun && (
+        <div className="card h-64 flex items-center justify-center text-textMute">
+          No simulations run yet. Go to Monte Carlo to run your first simulation.
+        </div>
+      )}
+    </div>
+  );
+}
 
-  useEffect(() => {
-    const settings = getSettings();
-    setTheme(settings.theme);
-    document.documentElement.classList.toggle("light", settings.theme === "light");
+// ============================================================================
+// Monte Carlo Tab
+// ============================================================================
+function MonteCarloTab() {
+  const activeScenario = useScenarioStore((s) => s.getActiveScenario());
+  const addRun = useRunsStore((s) => s.addRun);
+  const activeRun = useRunsStore((s) => s.getActiveRun());
 
-    // Load risk register
-    setRiskRegister(getRiskRegister());
+  const [isRunning, setIsRunning] = useState(false);
 
-    logTelemetry("app_loaded");
-  }, []);
+  const handleRun = () => {
+    if (!activeScenario) return;
 
-  // ========================================================================
-  // Handlers
-  // ========================================================================
-
-  const toggleTheme = () => {
-    const newTheme = theme === "dark" ? "light" : "dark";
-    setTheme(newTheme);
-    saveSettings({ theme: newTheme });
-    document.documentElement.classList.toggle("light", newTheme === "light");
-    logTelemetry("theme_toggled", { theme: newTheme });
-  };
-
-  const handleRunSimulation = async () => {
-    setIsSimulating(true);
-    logTelemetry("simulation_started", { nRuns: scenario.nRuns });
-
-    // Run in next tick to allow UI to update
+    setIsRunning(true);
     setTimeout(() => {
       try {
-        const result = runMonteCarlo(scenario);
-        setSimResult(result);
-
-        // Save to history
-        saveHistory({
-          id: generateId(),
-          scenarioTitle: scenario.title,
-          timestamp: new Date().toISOString(),
-          result,
-          scenario,
-        });
-
-        logTelemetry("simulation_completed", {
-          nRuns: scenario.nRuns,
-          elapsedMs: result.elapsedMs,
-        });
+        const result = runMonteCarloSync(activeScenario);
+        addRun(result);
       } catch (error) {
         console.error("Simulation error:", error);
-        logTelemetry("simulation_error", { error: String(error) });
       } finally {
-        setIsSimulating(false);
+        setIsRunning(false);
       }
     }, 100);
   };
 
-  const handleGenerateAIPlan = async () => {
-    setIsGeneratingPlan(true);
-    logTelemetry("ai_plan_requested");
+  if (!activeScenario) {
+    return (
+      <div className="max-w-[1800px] mx-auto px-6 py-8">
+        <div className="card h-96 flex flex-col items-center justify-center text-textMute">
+          <BarChart3 className="w-16 h-16 mb-4 opacity-50" />
+          <p>No active scenario. Go to Scenario Studio to create one.</p>
+        </div>
+      </div>
+    );
+  }
 
-    try {
-      const response = await fetch("/api/ai/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scenarioTitle: scenario.title,
-          scenarioDescription: scenario.description,
-          variables: scenario.variables,
-          timeHorizonDays: scenario.timeHorizonDays,
-          simulationSummary: simResult
-            ? `P50: ${formatNumber(simResult.percentiles.p50)}, P90: ${formatNumber(simResult.percentiles.p90)}, Mean: ${formatNumber(simResult.mean)}`
-            : undefined,
-        }),
-      });
+  return (
+    <div className="max-w-[1800px] mx-auto px-6 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">{activeScenario.title}</h2>
+          <p className="text-sm text-textMute">
+            {activeScenario.runs.toLocaleString()} runs • {activeScenario.horizonDays} days
+          </p>
+        </div>
+        <button onClick={handleRun} className="btn-primary gap-2" disabled={isRunning}>
+          {isRunning ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              Running...
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4" />
+              Run Simulation
+            </>
+          )}
+        </button>
+      </div>
 
-      const data = await response.json();
-      setAiPlan(data);
-      logTelemetry("ai_plan_generated", { source: data._source });
-    } catch (error) {
-      console.error("AI plan error:", error);
-      logTelemetry("ai_plan_error", { error: String(error) });
-    } finally {
-      setIsGeneratingPlan(false);
-    }
-  };
+      {activeRun && (
+        <div className="space-y-6">
+          {/* Metrics */}
+          <div className="grid grid-cols-5 gap-4">
+            {[
+              { label: "P5", value: activeRun.summary.p5 },
+              { label: "P50", value: activeRun.summary.p50 },
+              { label: "P90", value: activeRun.summary.p90 },
+              { label: "Mean", value: activeRun.summary.mean },
+              { label: "Std Dev", value: activeRun.summary.stdev },
+            ].map((metric) => (
+              <div key={metric.label} className="card">
+                <div className="text-sm text-textMute">{metric.label}</div>
+                <div className="text-2xl font-bold mt-1">{metric.value.toFixed(2)}</div>
+              </div>
+            ))}
+          </div>
 
-  const handleLoadTemplate = (template: Template) => {
-    setScenario({
-      ...template.scenario,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    setSimResult(null);
-    setAiPlan(null);
-    logTelemetry("template_loaded", { templateId: template.id });
-  };
+          {/* Distribution Chart */}
+          <div className="card">
+            <h3 className="font-semibold mb-4">Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={activeRun.histogram}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="bin"
+                  stroke="hsl(var(--text-mute))"
+                  fontSize={11}
+                  tickFormatter={(v) => v.toFixed(1)}
+                />
+                <YAxis stroke="hsl(var(--text-mute))" fontSize={11} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--surface))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Bar dataKey="count" fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Loss Exceedance Curve */}
+          <div className="card">
+            <h3 className="font-semibold mb-4">Loss Exceedance Curve</h3>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={activeRun.lec}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="x"
+                  stroke="hsl(var(--text-mute))"
+                  fontSize={11}
+                  tickFormatter={(v) => v.toFixed(1)}
+                />
+                <YAxis
+                  stroke="hsl(var(--text-mute))"
+                  fontSize={11}
+                  tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--surface))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="y"
+                  stroke="hsl(var(--secondary))"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Tornado Chart */}
+          <div className="card">
+            <h3 className="font-semibold mb-4">Sensitivity Analysis</h3>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={activeRun.tornado} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" stroke="hsl(var(--text-mute))" fontSize={11} />
+                <YAxis
+                  type="category"
+                  dataKey="variable"
+                  stroke="hsl(var(--text-mute))"
+                  fontSize={11}
+                  width={150}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--surface))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Bar dataKey="sensitivity" fill="hsl(var(--accent))" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {!activeRun && !isRunning && (
+        <div className="card h-96 flex items-center justify-center text-textMute">
+          Click "Run Simulation" to see results
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// Scenario Studio Tab
+// ============================================================================
+function ScenarioStudioTab() {
+  const activeScenario = useScenarioStore((s) => s.getActiveScenario());
+  const updateScenario = useScenarioStore((s) => s.updateScenario);
+  const addScenario = useScenarioStore((s) => s.addScenario);
 
   const handleAddVariable = () => {
-    setScenario((prev) => ({
-      ...prev,
-      variables: [
-        ...prev.variables,
-        {
-          id: generateId(),
-          name: `Variable ${prev.variables.length + 1}`,
-          distribution: "triangular",
-          min: 0,
-          mostLikely: 50,
-          max: 100,
-        },
-      ],
-    }));
+    if (!activeScenario) return;
+
+    const newVar: ScenarioVariable = {
+      id: generateId(),
+      name: `Variable ${activeScenario.variables.length + 1}`,
+      dist: "triangular",
+      min: 0,
+      mode: 50,
+      max: 100,
+    };
+
+    updateScenario(activeScenario.id, {
+      variables: [...activeScenario.variables, newVar],
+    });
   };
 
   const handleDeleteVariable = (id: string) => {
-    setScenario((prev) => ({
-      ...prev,
-      variables: prev.variables.filter((v) => v.id !== id),
-    }));
+    if (!activeScenario) return;
+    updateScenario(activeScenario.id, {
+      variables: activeScenario.variables.filter((v) => v.id !== id),
+    });
   };
 
   const handleUpdateVariable = (id: string, updates: Partial<ScenarioVariable>) => {
-    setScenario((prev) => ({
-      ...prev,
-      variables: prev.variables.map((v) => (v.id === id ? { ...v, ...updates } : v)),
-    }));
+    if (!activeScenario) return;
+    updateScenario(activeScenario.id, {
+      variables: activeScenario.variables.map((v) => (v.id === id ? { ...v, ...updates } : v)),
+    });
   };
 
-  const handleAddRiskItem = () => {
-    const newItem: RiskRegisterItem = {
+  const handleCreateNew = () => {
+    const newScenario: ScenarioConfig = {
       id: generateId(),
-      title: "New Risk",
-      category: "operational",
-      description: "",
-      owner: "",
-      likelihood: 3,
-      impact: 3,
-      riskScore: 9,
-      mitigation: "",
-      residualLikelihood: 2,
-      residualImpact: 2,
-      residualScore: 4,
-      status: "open",
-      linkedScenarioIds: [scenario.id],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      title: "New Scenario",
+      horizonDays: 30,
+      runs: 10000,
+      seed: 42,
+      correlation: "none",
+      kpi: "days_out_of_stock",
+      variables: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
-    saveRiskItem(newItem);
-    setRiskRegister([...riskRegister, newItem]);
+    addScenario(newScenario);
   };
 
-  const handleDeleteRiskItem = (id: string) => {
-    deleteRiskItem(id);
-    setRiskRegister(riskRegister.filter((r) => r.id !== id));
-  };
-
-  const handleExport = (format: "json" | "csv") => {
-    if (!simResult) return;
-
-    if (format === "json") {
-      const data = JSON.stringify({ scenario, simResult, aiPlan }, null, 2);
-      downloadFile(data, `risk-analysis-${Date.now()}.json`, "application/json");
-    } else {
-      // CSV export of simulation results
-      const headers = "Run,KPI Value\n";
-      const rows = simResult.runs.map((r) => `${r.runId},${r.kpiResult}`).join("\n");
-      downloadFile(headers + rows, `simulation-${Date.now()}.csv`, "text/csv");
-    }
-
-    logTelemetry("export", { format });
-  };
-
-  // ========================================================================
-  // Computed Values
-  // ========================================================================
-
-  const chartData = useMemo(() => {
-    if (!simResult) return [];
-    return simResult.histogram.map((h) => ({
-      bin: formatNumber(h.bin, 1),
-      count: h.count,
-    }));
-  }, [simResult]);
-
-  const tornadoData = useMemo(() => {
-    if (!simResult) return [];
-    return simResult.tornadoChart.slice(0, 5).map((t) => ({
-      variable: t.variable,
-      sensitivity: t.sensitivity,
-    }));
-  }, [simResult]);
-
-  // ========================================================================
-  // Render
-  // ========================================================================
+  if (!activeScenario) {
+    return (
+      <div className="max-w-[1800px] mx-auto px-6 py-8">
+        <div className="card h-96 flex flex-col items-center justify-center">
+          <p className="text-textMute mb-4">No active scenario</p>
+          <button onClick={handleCreateNew} className="btn-primary">
+            Create New Scenario
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Animated Background */}
-      <div className="absolute inset-0 bg-drift animate-drift pointer-events-none opacity-60" />
+    <div className="max-w-[1800px] mx-auto px-6 py-8">
+      <h2 className="text-2xl font-bold mb-6">Scenario Studio</h2>
 
-      {/* Header */}
-      <header className="relative border-b border-border bg-surface/80 backdrop-blur-sm">
-        <div className="max-w-[1800px] mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-neo flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Configuration */}
+        <div className="card">
+          <h3 className="font-semibold mb-4">Configuration</h3>
+          <div className="space-y-4">
             <div>
-              <h1 className="text-xl font-bold text-gradient">Risk Coach Neo</h1>
-              <p className="text-xs text-textMute">Monte Carlo Simulation Platform</p>
+              <label className="text-sm text-textMute">Title</label>
+              <input
+                type="text"
+                value={activeScenario.title}
+                onChange={(e) => updateScenario(activeScenario.id, { title: e.target.value })}
+                className="input mt-1"
+              />
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={toggleTheme} className="btn-ghost p-2" aria-label="Toggle theme">
-              {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-            <button
-              onClick={() => handleExport("json")}
-              className="btn-secondary gap-2"
-              disabled={!simResult}
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </button>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-textMute">Runs</label>
+                <input
+                  type="number"
+                  value={activeScenario.runs}
+                  onChange={(e) =>
+                    updateScenario(activeScenario.id, { runs: Number(e.target.value) })
+                  }
+                  min={1000}
+                  max={100000}
+                  step={1000}
+                  className="input mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-textMute">Horizon (days)</label>
+                <input
+                  type="number"
+                  value={activeScenario.horizonDays}
+                  onChange={(e) =>
+                    updateScenario(activeScenario.id, { horizonDays: Number(e.target.value) })
+                  }
+                  className="input mt-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-textMute">KPI</label>
+              <select
+                value={activeScenario.kpi}
+                onChange={(e) =>
+                  updateScenario(activeScenario.id, {
+                    kpi: e.target.value as ScenarioConfig["kpi"],
+                  })
+                }
+                className="input mt-1"
+              >
+                <option value="days_out_of_stock">Days Out of Stock</option>
+                <option value="cost_overrun">Cost Overrun</option>
+                <option value="delivery_delay">Delivery Delay</option>
+                <option value="service_level">Service Level</option>
+              </select>
+            </div>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <div className="relative max-w-[1800px] mx-auto px-6 py-6">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* LEFT PANEL: Scenario Builder */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-4"
-          >
-            {/* Scenario Config */}
-            <div className="card">
-              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Scenario Builder
-              </h2>
+        {/* Variables */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Variables</h3>
+            <button onClick={handleAddVariable} className="btn-secondary gap-2">
+              <Plus className="w-4 h-4" />
+              Add Variable
+            </button>
+          </div>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm text-textMute">Title</label>
+          <div className="space-y-3 max-h-[500px] overflow-y-auto">
+            {activeScenario.variables.map((v) => (
+              <div key={v.id} className="p-3 rounded-lg border border-border bg-bg/30">
+                <div className="flex items-start justify-between mb-2">
                   <input
                     type="text"
-                    value={scenario.title}
-                    onChange={(e) => setScenario({ ...scenario, title: e.target.value })}
-                    className="input mt-1"
+                    value={v.name}
+                    onChange={(e) => handleUpdateVariable(v.id, { name: e.target.value })}
+                    className="input text-sm flex-1 mr-2"
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-sm text-textMute">Runs</label>
-                    <input
-                      type="number"
-                      value={scenario.nRuns}
-                      onChange={(e) =>
-                        setScenario({ ...scenario, nRuns: Number(e.target.value) })
-                      }
-                      min={1000}
-                      max={50000}
-                      step={1000}
-                      className="input mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-textMute">Horizon (days)</label>
-                    <input
-                      type="number"
-                      value={scenario.timeHorizonDays}
-                      onChange={(e) =>
-                        setScenario({ ...scenario, timeHorizonDays: Number(e.target.value) })
-                      }
-                      className="input mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm text-textMute">Primary KPI</label>
-                  <select
-                    value={scenario.primaryKPI}
-                    onChange={(e) =>
-                      setScenario({ ...scenario, primaryKPI: e.target.value as KPIType })
-                    }
-                    className="input mt-1"
+                  <button
+                    onClick={() => handleDeleteVariable(v.id)}
+                    className="btn-ghost p-1 text-danger"
                   >
-                    <option value="days_out_of_stock">Days Out of Stock</option>
-                    <option value="cost_overrun">Cost Overrun</option>
-                    <option value="delivery_delay">Delivery Delay</option>
-                    <option value="service_level">Service Level</option>
-                  </select>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-              </div>
 
-              <div className="mt-4 flex gap-2">
-                <button onClick={handleRunSimulation} className="btn-primary flex-1 gap-2" disabled={isSimulating}>
-                  {isSimulating ? (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <select
+                    value={v.dist}
+                    onChange={(e) => handleUpdateVariable(v.id, { dist: e.target.value as any })}
+                    className="input"
+                  >
+                    <option value="triangular">Triangular</option>
+                    <option value="pert">PERT</option>
+                    <option value="normal">Normal</option>
+                    <option value="lognormal">Lognormal</option>
+                  </select>
+
+                  {(v.dist === "triangular" || v.dist === "pert") && (
                     <>
-                      <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                      Simulating...
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4" />
-                      Run Simulation
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleGenerateAIPlan}
-                  className="btn-secondary gap-2"
-                  disabled={isGeneratingPlan}
-                >
-                  <Sparkles className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Variables */}
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Variables</h3>
-                <button onClick={handleAddVariable} className="btn-ghost p-1">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                {scenario.variables.map((v, idx) => (
-                  <div key={v.id} className="p-3 rounded-lg border border-border bg-bg/50">
-                    <div className="flex items-start justify-between mb-2">
                       <input
-                        type="text"
-                        value={v.name}
-                        onChange={(e) => handleUpdateVariable(v.id, { name: e.target.value })}
-                        className="input text-sm flex-1 mr-2"
-                        placeholder="Variable name"
-                      />
-                      <button
-                        onClick={() => handleDeleteVariable(v.id)}
-                        className="btn-ghost p-1 text-danger"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <select
-                        value={v.distribution}
+                        type="number"
+                        value={v.min ?? 0}
                         onChange={(e) =>
-                          handleUpdateVariable(v.id, { distribution: e.target.value as DistName })
+                          handleUpdateVariable(v.id, { min: Number(e.target.value) })
                         }
                         className="input"
-                      >
-                        <option value="triangular">Triangular</option>
-                        <option value="pert">PERT</option>
-                        <option value="normal">Normal</option>
-                        <option value="lognormal">Lognormal</option>
-                      </select>
-
-                      <input
-                        type="text"
-                        value={v.unit || ""}
-                        onChange={(e) => handleUpdateVariable(v.id, { unit: e.target.value })}
-                        className="input"
-                        placeholder="Unit"
+                        placeholder="Min"
                       />
-
-                      {(v.distribution === "triangular" || v.distribution === "pert") && (
-                        <>
-                          <input
-                            type="number"
-                            value={v.min ?? 0}
-                            onChange={(e) =>
-                              handleUpdateVariable(v.id, { min: Number(e.target.value) })
-                            }
-                            className="input"
-                            placeholder="Min"
-                          />
-                          <input
-                            type="number"
-                            value={v.mostLikely ?? 0}
-                            onChange={(e) =>
-                              handleUpdateVariable(v.id, { mostLikely: Number(e.target.value) })
-                            }
-                            className="input"
-                            placeholder="Mode"
-                          />
-                          <input
-                            type="number"
-                            value={v.max ?? 0}
-                            onChange={(e) =>
-                              handleUpdateVariable(v.id, { max: Number(e.target.value) })
-                            }
-                            className="input"
-                            placeholder="Max"
-                          />
-                        </>
-                      )}
-
-                      {(v.distribution === "normal" || v.distribution === "lognormal") && (
-                        <>
-                          <input
-                            type="number"
-                            value={v.mean ?? 0}
-                            onChange={(e) =>
-                              handleUpdateVariable(v.id, { mean: Number(e.target.value) })
-                            }
-                            className="input"
-                            placeholder="Mean"
-                          />
-                          <input
-                            type="number"
-                            value={v.stdDev ?? 1}
-                            onChange={(e) =>
-                              handleUpdateVariable(v.id, { stdDev: Number(e.target.value) })
-                            }
-                            className="input"
-                            placeholder="Std Dev"
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Templates */}
-            <div className="card">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <BookTemplate className="w-5 h-5" />
-                Templates
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {templates.slice(0, 6).map((tmpl) => (
-                  <button
-                    key={tmpl.id}
-                    onClick={() => handleLoadTemplate(tmpl)}
-                    className="btn-secondary text-xs justify-start gap-2"
-                  >
-                    <span>{tmpl.icon}</span>
-                    <span className="truncate">{tmpl.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-
-          {/* RIGHT PANEL: Results & Tabs */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-2 space-y-4"
-          >
-            {/* Tab Navigation */}
-            <div className="card py-3">
-              <div className="flex gap-2">
-                {(["simulation", "register", "plan"] as TabName[]).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`btn flex-1 ${activeTab === tab ? "btn-primary" : "btn-ghost"}`}
-                  >
-                    {tab === "simulation" && <BarChart3 className="w-4 h-4 mr-2" />}
-                    {tab === "register" && <ListChecks className="w-4 h-4 mr-2" />}
-                    {tab === "plan" && <Sparkles className="w-4 h-4 mr-2" />}
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            <AnimatePresence mode="wait">
-              {activeTab === "simulation" && (
-                <motion.div
-                  key="simulation"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="space-y-4"
-                >
-                  {/* Metrics */}
-                  {simResult && (
-                    <div className="grid grid-cols-4 gap-4">
-                      {[
-                        { label: "P50", value: formatNumber(simResult.percentiles.p50) },
-                        { label: "P90", value: formatNumber(simResult.percentiles.p90) },
-                        { label: "Mean", value: formatNumber(simResult.mean) },
-                        { label: "Std Dev", value: formatNumber(simResult.stdDev) },
-                      ].map((metric) => (
-                        <div key={metric.label} className="card">
-                          <div className="text-sm text-textMute">{metric.label}</div>
-                          <div className="text-2xl font-bold mt-1">{metric.value}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Charts */}
-                  {simResult && (
-                    <>
-                      <div className="card">
-                        <h3 className="font-semibold mb-4">Distribution</h3>
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis dataKey="bin" stroke="hsl(var(--text-mute))" fontSize={12} />
-                            <YAxis stroke="hsl(var(--text-mute))" fontSize={12} />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: "hsl(var(--surface))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "8px",
-                              }}
-                            />
-                            <Bar dataKey="count" fill="hsl(var(--primary))" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-
-                      <div className="card">
-                        <h3 className="font-semibold mb-4">Sensitivity (Tornado Chart)</h3>
-                        <ResponsiveContainer width="100%" height={250}>
-                          <BarChart data={tornadoData} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis type="number" stroke="hsl(var(--text-mute))" fontSize={12} />
-                            <YAxis type="category" dataKey="variable" stroke="hsl(var(--text-mute))" fontSize={12} width={120} />
-                            <Tooltip
-                              contentStyle={{
-                                backgroundColor: "hsl(var(--surface))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "8px",
-                              }}
-                            />
-                            <Bar dataKey="sensitivity" fill="hsl(var(--secondary))" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
+                      <input
+                        type="number"
+                        value={v.mode ?? 0}
+                        onChange={(e) =>
+                          handleUpdateVariable(v.id, { mode: Number(e.target.value) })
+                        }
+                        className="input"
+                        placeholder="Mode"
+                      />
+                      <input
+                        type="number"
+                        value={v.max ?? 0}
+                        onChange={(e) =>
+                          handleUpdateVariable(v.id, { max: Number(e.target.value) })
+                        }
+                        className="input"
+                        placeholder="Max"
+                      />
                     </>
                   )}
 
-                  {!simResult && (
-                    <div className="card h-[400px] flex items-center justify-center text-textMute">
-                      Run a simulation to see results
-                    </div>
+                  {(v.dist === "normal" || v.dist === "lognormal") && (
+                    <>
+                      <input
+                        type="number"
+                        value={v.mean ?? 0}
+                        onChange={(e) =>
+                          handleUpdateVariable(v.id, { mean: Number(e.target.value) })
+                        }
+                        className="input"
+                        placeholder="Mean"
+                      />
+                      <input
+                        type="number"
+                        value={v.stdev ?? 1}
+                        onChange={(e) =>
+                          handleUpdateVariable(v.id, { stdev: Number(e.target.value) })
+                        }
+                        className="input"
+                        placeholder="Std Dev"
+                      />
+                    </>
                   )}
-                </motion.div>
-              )}
+                </div>
+              </div>
+            ))}
 
-              {activeTab === "register" && (
-                <motion.div
-                  key="register"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="card"
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold">Risk Register</h3>
-                    <button onClick={handleAddRiskItem} className="btn-primary gap-2">
-                      <Plus className="w-4 h-4" />
-                      Add Risk
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {riskRegister.length === 0 && (
-                      <div className="text-center text-textMute py-8">No risks registered yet</div>
-                    )}
-                    {riskRegister.map((risk) => (
-                      <div key={risk.id} className="p-4 rounded-lg border border-border bg-bg/30">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-medium">{risk.title}</h4>
-                            <p className="text-sm text-textMute mt-1">{risk.description}</p>
-                            <div className="flex items-center gap-4 mt-3 text-xs text-textMute">
-                              <span>L: {risk.likelihood}</span>
-                              <span>I: {risk.impact}</span>
-                              <span className="font-semibold text-text">Score: {risk.riskScore}</span>
-                              <span className="px-2 py-0.5 rounded bg-surface border border-border">
-                                {risk.status}
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteRiskItem(risk.id)}
-                            className="btn-ghost p-1 text-danger"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-
-              {activeTab === "plan" && (
-                <motion.div
-                  key="plan"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="card"
-                >
-                  <h3 className="font-semibold mb-4">AI-Generated Plan</h3>
-
-                  {!aiPlan && (
-                    <div className="text-center text-textMute py-12">
-                      Click the <Sparkles className="w-4 h-4 inline" /> button to generate a plan
-                    </div>
-                  )}
-
-                  {aiPlan && (
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-textMute mb-2">Executive Summary</h4>
-                        <div className="prose prose-invert max-w-none">
-                          <pre className="whitespace-pre-wrap text-sm">{aiPlan.summary}</pre>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm font-medium text-textMute mb-2">Key Actions</h4>
-                        <ul className="space-y-2">
-                          {aiPlan.actions.map((action, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-sm">
-                              <span className="text-primary mt-1">•</span>
-                              <span>{action}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="text-sm font-medium text-textMute mb-2">Timeline</h4>
-                        <p className="text-sm">{aiPlan.timeline}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-border">
-                        <span className="text-xs text-textMute">
-                          Source: {aiPlan._source === "ai" ? "🤖 AI Generated" : "📦 Local Fallback"}
-                        </span>
-                        {aiPlan.confidence && (
-                          <span className="text-xs text-textMute">
-                            Confidence: {formatPercent(aiPlan.confidence)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+            {activeScenario.variables.length === 0 && (
+              <div className="text-center text-textMute py-8">
+                No variables yet. Click "Add Variable" to get started.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================================
+// Risk Register Tab
+// ============================================================================
+function RiskRegisterTab() {
+  const risks = useRegisterStore((s) => s.risks);
+  const addRisk = useRegisterStore((s) => s.addRisk);
+  const deleteRisk = useRegisterStore((s) => s.deleteRisk);
+
+  const handleAddRisk = () => {
+    const newRisk: RiskItem = {
+      id: generateId(),
+      title: "New Risk",
+      category: "Ops",
+      likelihood: 3,
+      impact: 3,
+      status: "open",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    addRisk(newRisk);
+  };
+
+  return (
+    <div className="max-w-[1800px] mx-auto px-6 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Risk Register</h2>
+        <button onClick={handleAddRisk} className="btn-primary gap-2">
+          <Plus className="w-4 h-4" />
+          Add Risk
+        </button>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Risk List */}
+        <div className="lg:col-span-2 space-y-3">
+          {risks.length === 0 && (
+            <div className="card h-96 flex items-center justify-center text-textMute">
+              No risks registered. Click "Add Risk" to create one.
+            </div>
+          )}
+
+          {risks.map((risk) => {
+            const riskScore = risk.likelihood * risk.impact;
+            const color =
+              riskScore >= 15 ? "danger" : riskScore >= 9 ? "warning" : "success";
+
+            return (
+              <div key={risk.id} className="card">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h4 className="font-semibold">{risk.title}</h4>
+                      <span className={`text-xs px-2 py-0.5 rounded bg-${color}/20 text-${color}`}>
+                        {risk.category}
+                      </span>
+                    </div>
+                    {risk.description && (
+                      <p className="text-sm text-textMute mt-2">{risk.description}</p>
+                    )}
+                    <div className="flex items-center gap-4 mt-3 text-xs">
+                      <span className="text-textMute">L: {risk.likelihood}</span>
+                      <span className="text-textMute">I: {risk.impact}</span>
+                      <span className="font-semibold">Score: {riskScore}</span>
+                      <span className="px-2 py-0.5 rounded bg-surface border border-border">
+                        {risk.status}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => deleteRisk(risk.id)}
+                    className="btn-ghost p-1 text-danger"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Risk Heatmap */}
+        <div className="card">
+          <h3 className="font-semibold mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            Risk Heatmap
+          </h3>
+          <div className="grid grid-cols-5 gap-1">
+            {Array.from({ length: 25 }, (_, i) => {
+              const likelihood = 5 - Math.floor(i / 5);
+              const impact = (i % 5) + 1;
+              const score = likelihood * impact;
+              const count = risks.filter(
+                (r) => r.likelihood === likelihood && r.impact === impact
+              ).length;
+
+              const color =
+                score >= 15 ? "bg-danger/30" : score >= 9 ? "bg-warning/30" : "bg-success/30";
+
+              return (
+                <div
+                  key={i}
+                  className={`aspect-square flex items-center justify-center text-xs font-semibold rounded ${color} border border-border`}
+                >
+                  {count || ""}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 text-xs text-textMute text-center">
+            Likelihood (5=High) × Impact (5=High)
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Main Page Component
+// ============================================================================
+export default function RiskCoachNeoPage() {
+  const activeTab = useUiStore((s) => s.activeTab);
+  const scenarios = useScenarioStore((s) => s.scenarios);
+  const addScenario = useScenarioStore((s) => s.addScenario);
+  const setActiveScenario = useScenarioStore((s) => s.setActiveScenario);
+
+  // Initialize with default scenario
+  useEffect(() => {
+    if (scenarios.length === 0) {
+      const defaultScenario: ScenarioConfig = {
+        id: generateId(),
+        title: "Supply Chain Risk Analysis",
+        horizonDays: 30,
+        runs: 10000,
+        seed: 42,
+        correlation: "none",
+        kpi: "days_out_of_stock",
+        variables: [
+          {
+            id: generateId(),
+            name: "Supplier Delay",
+            unit: "days",
+            dist: "pert",
+            min: 7,
+            mode: 14,
+            max: 30,
+          },
+          {
+            id: generateId(),
+            name: "Stock Coverage",
+            unit: "days",
+            dist: "triangular",
+            min: 8,
+            mode: 12,
+            max: 18,
+          },
+        ],
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      addScenario(defaultScenario);
+      setActiveScenario(defaultScenario.id);
+    }
+  }, [scenarios.length, addScenario, setActiveScenario]);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+      {/* Background gradient */}
+      <div className="absolute inset-0 bg-drift animate-drift pointer-events-none opacity-40" />
+
+      {/* Tab Content */}
+      <div className="relative">
+        {activeTab === "dashboard" && <DashboardTab />}
+        {activeTab === "monte-carlo" && <MonteCarloTab />}
+        {activeTab === "scenario-studio" && <ScenarioStudioTab />}
+        {activeTab === "register" && <RiskRegisterTab />}
+      </div>
+    </motion.div>
   );
 }
