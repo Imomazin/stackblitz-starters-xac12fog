@@ -81,7 +81,7 @@ ${scenarioDescription ? `Description: ${scenarioDescription}\n` : ""}
 Time Horizon: ${timeHorizonDays} days
 
 Variables:
-${variables.map((v) => `- ${v.name} (${v.distribution}${v.unit ? `, unit: ${v.unit}` : ""})`).join("\n")}
+${variables.map((v) => `- ${v.name} (${v.dist}${v.unit ? `, unit: ${v.unit}` : ""})`).join("\n")}
 
 ${simulationSummary ? `\nSimulation Results:\n${simulationSummary}` : ""}
 
