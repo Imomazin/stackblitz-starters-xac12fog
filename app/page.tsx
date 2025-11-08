@@ -293,7 +293,7 @@ function MonteCarloTab() {
 
       {!activeRun && !isRunning && (
         <div className="card h-96 flex items-center justify-center text-textMute">
-          Click "Run Simulation" to see results
+          Click &quot;Run Simulation&quot; to see results
         </div>
       )}
     </div>
@@ -535,7 +535,7 @@ function ScenarioStudioTab() {
 
             {activeScenario.variables.length === 0 && (
               <div className="text-center text-textMute py-8">
-                No variables yet. Click "Add Variable" to get started.
+                No variables yet. Click &quot;Add Variable&quot; to get started.
               </div>
             )}
           </div>
@@ -582,7 +582,7 @@ function RiskRegisterTab() {
         <div className="lg:col-span-2 space-y-3">
           {risks.length === 0 && (
             <div className="card h-96 flex items-center justify-center text-textMute">
-              No risks registered. Click "Add Risk" to create one.
+              No risks registered. Click &quot;Add Risk&quot; to create one.
             </div>
           )}
 
