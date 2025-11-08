@@ -384,9 +384,9 @@ function CoverPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-6xl md:text-8xl font-bold mb-4 text-gradient"
+            className="text-6xl md:text-8xl font-bold mb-4 text-gradient tracking-wide"
           >
-            R_LUMINA
+            R<span className="text-primary">_</span>LUMINA
           </motion.h1>
 
           <motion.p
@@ -446,6 +446,89 @@ function CoverPage() {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* Quick Navigation with Dropdowns */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="py-12 px-6 bg-surface/50 border-y border-border"
+      >
+        <div className="max-w-[1400px] mx-auto">
+          <div className="flex flex-wrap justify-center gap-4">
+            {[
+              {
+                title: "Core",
+                tabs: [
+                  { id: "dashboard", label: "Dashboard" },
+                  { id: "monte-carlo", label: "Monte Carlo" },
+                  { id: "scenario-studio", label: "Scenarios" },
+                  { id: "register", label: "Risk Register" },
+                ]
+              },
+              {
+                title: "Advanced Analytics",
+                tabs: [
+                  { id: "cognitive-twin", label: "Digital Twin" },
+                  { id: "portfolio", label: "Portfolio" },
+                  { id: "network", label: "Network" },
+                  { id: "bayesian", label: "Bayesian" },
+                  { id: "forecasting", label: "Forecasting" },
+                ]
+              },
+              {
+                title: "Risk Methods",
+                tabs: [
+                  { id: "bow-tie", label: "Bow-tie" },
+                  { id: "fmea", label: "FMEA" },
+                  { id: "kri", label: "KRI" },
+                  { id: "risk-appetite", label: "Appetite" },
+                ]
+              },
+              {
+                title: "Domain Risk",
+                tabs: [
+                  { id: "cyber-risk", label: "Cyber" },
+                  { id: "climate-risk", label: "Climate" },
+                  { id: "supply-chain", label: "Supply Chain" },
+                  { id: "esg", label: "ESG" },
+                  { id: "third-party", label: "Vendors" },
+                ]
+              },
+              {
+                title: "Modelling",
+                tabs: [
+                  { id: "agent-based", label: "Agent-Based" },
+                  { id: "system-dynamics", label: "System Dynamics" },
+                  { id: "what-if", label: "What-If" },
+                  { id: "stress-lab", label: "Stress Lab" },
+                ]
+              },
+            ].map((group, idx) => (
+              <div key={idx} className="relative group">
+                <button className="px-6 py-3 bg-gradient-neo text-white rounded-lg font-semibold hover:shadow-lg transition-all flex items-center gap-2">
+                  {group.title}
+                  <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {/* Dropdown */}
+                <div className="absolute top-full left-0 mt-2 min-w-[200px] bg-surface border border-border rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  {group.tabs.map((tab, tabIdx) => (
+                    <button
+                      key={tabIdx}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className="w-full text-left px-4 py-3 hover:bg-primary/10 hover:text-primary transition-colors first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.section>
 
       {/* Stats Bar */}
       <section className="bg-gradient-neo text-white py-12 px-6">
@@ -606,6 +689,98 @@ function CoverPage() {
           </div>
         </div>
       </motion.section>
+
+      {/* Auto-Scrolling Image Carousel - People & Risk Imagery */}
+      <section className="py-12 bg-background overflow-hidden">
+        <div className="relative">
+          <h3 className="text-2xl font-bold text-center mb-8">Real-Time Risk Intelligence in Action</h3>
+
+          {/* Scrolling Container */}
+          <div className="relative overflow-hidden">
+            <motion.div
+              className="flex gap-6"
+              animate={{
+                x: [0, -2000],
+              }}
+              transition={{
+                x: {
+                  repeat: Infinity,
+                  repeatType: "loop",
+                  duration: 40,
+                  ease: "linear",
+                },
+              }}
+            >
+              {/* Repeat images twice for seamless loop */}
+              {[...Array(2)].map((_, setIdx) => (
+                <div key={setIdx} className="flex gap-6 shrink-0">
+                  {/* Human Images */}
+                  {[
+                    { img: "https://i.pravatar.cc/120?img=1", label: "Risk Analyst" },
+                    { img: "https://i.pravatar.cc/120?img=8", label: "CRO" },
+                    { img: "https://i.pravatar.cc/120?img=15", label: "CFO" },
+                    { img: "https://i.pravatar.cc/120?img=20", label: "Auditor" },
+                    { img: "https://i.pravatar.cc/120?img=27", label: "Compliance" },
+                    { img: "https://i.pravatar.cc/120?img=32", label: "Director" },
+                  ].map((person, idx) => (
+                    <div key={`person-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/20 shadow-lg mb-2">
+                        <img src={person.img} alt={person.label} className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-xs text-textMute">{person.label}</span>
+                    </div>
+                  ))}
+
+                  {/* Risk-Related Icons/Imagery */}
+                  {[
+                    { icon: <BarChart3 className="w-12 h-12" />, label: "Analytics", color: "from-blue-500 to-cyan-500" },
+                    { icon: <AlertTriangle className="w-12 h-12" />, label: "Alerts", color: "from-yellow-500 to-orange-500" },
+                    { icon: <Shield className="w-12 h-12" />, label: "Security", color: "from-green-500 to-emerald-500" },
+                    { icon: <Target className="w-12 h-12" />, label: "Strategy", color: "from-red-500 to-pink-500" },
+                    { icon: <Network className="w-12 h-12" />, label: "Network", color: "from-purple-500 to-indigo-500" },
+                    { icon: <Database className="w-12 h-12" />, label: "Data", color: "from-teal-500 to-cyan-500" },
+                  ].map((item, idx) => (
+                    <div key={`risk-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
+                      <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg mb-2`}>
+                        {item.icon}
+                      </div>
+                      <span className="text-xs text-textMute">{item.label}</span>
+                    </div>
+                  ))}
+
+                  {/* More People */}
+                  {[
+                    { img: "https://i.pravatar.cc/120?img=41", label: "Manager" },
+                    { img: "https://i.pravatar.cc/120?img=47", label: "VP Risk" },
+                    { img: "https://i.pravatar.cc/120?img=52", label: "Executive" },
+                  ].map((person, idx) => (
+                    <div key={`person2-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-secondary/20 shadow-lg mb-2">
+                        <img src={person.img} alt={person.label} className="w-full h-full object-cover" />
+                      </div>
+                      <span className="text-xs text-textMute">{person.label}</span>
+                    </div>
+                  ))}
+
+                  {/* More Risk Icons */}
+                  {[
+                    { icon: <Gauge className="w-12 h-12" />, label: "KPIs", color: "from-indigo-500 to-blue-500" },
+                    { icon: <Lock className="w-12 h-12" />, label: "Compliance", color: "from-gray-500 to-slate-500" },
+                    { icon: <GitBranch className="w-12 h-12" />, label: "Scenarios", color: "from-pink-500 to-rose-500" },
+                  ].map((item, idx) => (
+                    <div key={`risk2-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
+                      <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg mb-2`}>
+                        {item.icon}
+                      </div>
+                      <span className="text-xs text-textMute">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </div>
+      </section>
 
       {/* Data Upload Section with Professional Icons */}
       <motion.section
