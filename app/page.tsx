@@ -7,6 +7,8 @@ import { useScenarioStore } from "./store/scenario";
 import { useRunsStore } from "./store/runs";
 import { useRegisterStore } from "./store/register";
 import { runMonteCarloSync } from "@/lib/montecarlo";
+import { CASE_STUDIES, type CaseStudy } from "@/lib/data/caseStudies";
+import { CaseStudyModal } from "@/components/CaseStudyModal";
 import {
   BarChart,
   Bar,
@@ -261,6 +263,7 @@ function CoverPage() {
   const setActiveTab = useUiStore((s) => s.setActiveTab);
   const addScenario = useScenarioStore((s) => s.addScenario);
   const [uploadedData, setUploadedData] = useState<File | null>(null);
+  const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
 
   const handleDataUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target?.files?.[0];
@@ -503,6 +506,7 @@ function CoverPage() {
                 {/* Panama Canal Expansion */}
                 <motion.div
                   whileHover={{ scale: 1.02, y: -5 }}
+                  onClick={() => setSelectedCaseStudy(CASE_STUDIES[0])}
                   className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-blue-900/90 to-cyan-900/90 flex flex-col justify-end p-8">
@@ -529,6 +533,7 @@ function CoverPage() {
                 {/* Burj Khalifa */}
                 <motion.div
                   whileHover={{ scale: 1.02, y: -5 }}
+                  onClick={() => setSelectedCaseStudy(CASE_STUDIES[1])}
                   className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/90 to-purple-900/90 flex flex-col justify-end p-8">
@@ -555,6 +560,7 @@ function CoverPage() {
                 {/* Channel Tunnel */}
                 <motion.div
                   whileHover={{ scale: 1.02, y: -5 }}
+                  onClick={() => setSelectedCaseStudy(CASE_STUDIES[2])}
                   className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 to-teal-900/90 flex flex-col justify-end p-8">
@@ -581,6 +587,7 @@ function CoverPage() {
                 {/* International Space Station */}
                 <motion.div
                   whileHover={{ scale: 1.02, y: -5 }}
+                  onClick={() => setSelectedCaseStudy(CASE_STUDIES[3])}
                   className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 to-zinc-900/90 flex flex-col justify-end p-8">
@@ -607,6 +614,7 @@ function CoverPage() {
                 {/* Three Gorges Dam */}
                 <motion.div
                   whileHover={{ scale: 1.02, y: -5 }}
+                  onClick={() => setSelectedCaseStudy(CASE_STUDIES[4])}
                   className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-green-900/90 to-lime-900/90 flex flex-col justify-end p-8">
@@ -633,6 +641,7 @@ function CoverPage() {
                 {/* London Crossrail */}
                 <motion.div
                   whileHover={{ scale: 1.02, y: -5 }}
+                  onClick={() => setSelectedCaseStudy(CASE_STUDIES[5])}
                   className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-rose-900/90 to-pink-900/90 flex flex-col justify-end p-8">
@@ -987,6 +996,12 @@ function CoverPage() {
           Enter Platform →
         </button>
       </section>
+
+      {/* Case Study Modal */}
+      <CaseStudyModal
+        caseStudy={selectedCaseStudy}
+        onClose={() => setSelectedCaseStudy(null)}
+      />
     </div>
   );
 }
