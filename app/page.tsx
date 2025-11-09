@@ -110,6 +110,8 @@ function AIChat({ showChat, setShowChat }: { showChat: boolean; setShowChat: (sh
 
   const getAIResponse = async (question: string): Promise<string> => {
     try {
+      console.log('[AI Advisor] Sending request to /api/risk-advisor');
+
       // Call the Claude-powered Risk Advisor API
       const response = await fetch('/api/risk-advisor', {
         method: 'POST',
@@ -125,21 +127,62 @@ function AIChat({ showChat, setShowChat }: { showChat: boolean; setShowChat: (sh
         }),
       });
 
+      console.log('[AI Advisor] Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        console.error('[AI Advisor] HTTP error:', response.status, response.statusText);
+        return `⚠️ **API Error (${response.status})**
+
+I'm having trouble reaching the AI service. This might be because:
+- The API endpoint is not responding
+- There's a configuration issue
+
+**You can still use R_LUMINA's features:**
+- Risk Register, Monte Carlo, FMEA, Bow-Tie Analysis
+- All 29 modules are fully functional
+
+Try refreshing the page, or contact support if this persists.`;
       }
 
       const data = await response.json();
+      console.log('[AI Advisor] Response received:', data._source);
 
       if (data.error) {
-        console.error('[Risk Advisor] API error:', data.error);
-        return `I encountered an error: ${data.details || 'Unknown error'}. Please try again.`;
+        console.error('[AI Advisor] API error:', data.error);
+        return `⚠️ **${data.error}**
+
+${data.details || 'An unexpected error occurred.'}
+
+**Tip:** Check your environment configuration and try again.`;
       }
 
-      return data.response || 'Sorry, I couldn\'t generate a response. Please try again.';
-    } catch (error) {
-      console.error('[Risk Advisor] Request failed:', error);
-      return 'Sorry, I\'m having trouble connecting to the AI service. Please check your connection and try again.';
+      return data.response || '🤔 I received an empty response. Please try rephrasing your question.';
+    } catch (error: any) {
+      console.error('[AI Advisor] Request failed:', error);
+
+      // Check if it's a network error
+      if (error.message?.includes('fetch')) {
+        return `🔌 **Connection Error**
+
+I can't connect to the AI service right now. This might be due to:
+- Network connectivity issues
+- The API service not being available
+
+**Meanwhile, you can:**
+- Use all R_LUMINA's risk management tools
+- Check the documentation for guidance
+- Try again in a moment
+
+All platform features remain fully operational!`;
+      }
+
+      return `⚠️ **Unexpected Error**
+
+${error.message || 'An unknown error occurred.'}
+
+**Don't worry:** All R_LUMINA features are still available. The AI Advisor is just one helper tool.
+
+Try refreshing or contact support if this continues.`;
     }
   };
 

@@ -1,0 +1,30 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  EXECUTIVE
+  ANALYST
+  OPERATIONS
+  FINANCE
+  AUDITOR
+  ADMIN
+  OWNER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      Role     @default(EXECUTIVE)
+  password  String   // hashed with bcrypt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

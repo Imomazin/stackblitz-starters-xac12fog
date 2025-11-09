@@ -4,6 +4,7 @@ import "./globals.css";
 import { useEffect } from "react";
 import { useUiStore } from "./store/ui";
 import { TrendingUp, Moon, Sun } from "lucide-react";
+import { SessionProvider } from "@/components/auth/SessionProvider";
 import type { TabName } from "./types";
 
 // Enterprise-grade navigation with categories
@@ -98,6 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <SessionProvider>
         {/* Header */}
         <header className="border-b border-border bg-surface/80 backdrop-blur-sm sticky top-0 z-50">
           <div className="max-w-[1800px] mx-auto px-6 py-4">
@@ -165,6 +167,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <span className="text-text">Viva<em>La</em>Vida</span>.
           </div>
         </footer>
+        </SessionProvider>
       </body>
     </html>
   );
