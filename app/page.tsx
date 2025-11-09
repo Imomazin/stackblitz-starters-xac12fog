@@ -1710,6 +1710,207 @@ function CoverPage() {
         </motion.div>
       </section>
 
+      {/* Epic Projects Carousel - Large Scale Risk Case Studies */}
+      <motion.section
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        className="py-20 px-6 bg-gradient-to-br from-surface/30 to-background overflow-hidden"
+      >
+        <div className="max-w-[1600px] mx-auto mb-12">
+          <h2 className="text-4xl font-bold text-center mb-4">Epic Projects. Complex Risks. Real Solutions.</h2>
+          <p className="text-center text-textMute text-lg max-w-3xl mx-auto">
+            See how R_LUMINA powers risk management for the world&apos;s most ambitious projects
+          </p>
+        </div>
+
+        {/* Scrolling Container with Large Cards */}
+        <div className="relative overflow-hidden">
+          <motion.div
+            className="flex gap-8"
+            animate={{
+              x: [0, -3200],
+            }}
+            transition={{
+              x: {
+                repeat: Infinity,
+                repeatType: "loop",
+                duration: 60,
+                ease: "linear",
+              },
+            }}
+          >
+            {/* Duplicate for seamless loop */}
+            {[...Array(2)].map((_, setIdx) => (
+              <div key={setIdx} className="flex gap-8 shrink-0">
+                {/* Panama Canal Expansion */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-900/90 to-cyan-900/90 flex flex-col justify-end p-8">
+                    <div className="absolute top-6 right-6 px-4 py-2 bg-red-500 text-white font-bold rounded-lg text-sm">
+                      $5.4B Budget Risk
+                    </div>
+                    <h3 className="text-3xl font-bold text-white mb-3">Panama Canal Expansion</h3>
+                    <p className="text-white/90 text-lg mb-4">
+                      Managing geotechnical risks, cost overruns, and 9-year construction timeline with Monte Carlo simulation
+                    </p>
+                    <div className="flex gap-3 text-sm text-white/80">
+                      <span className="flex items-center gap-1"><Target className="w-4 h-4" /> Engineering Risk</span>
+                      <span className="flex items-center gap-1"><Shield className="w-4 h-4" /> $500M Contingency</span>
+                      <span className="flex items-center gap-1"><TrendingUp className="w-4 h-4" /> On-time Delivery</span>
+                    </div>
+                  </div>
+                  <img
+                    src="https://images.unsplash.com/photo-1587293852726-70cdb56c2866?w=800&h=600&fit=crop"
+                    alt="Canal Infrastructure"
+                    className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
+                  />
+                </motion.div>
+
+                {/* Burj Khalifa */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/90 to-purple-900/90 flex flex-col justify-end p-8">
+                    <div className="absolute top-6 right-6 px-4 py-2 bg-orange-500 text-white font-bold rounded-lg text-sm">
+                      828m Height Risk
+                    </div>
+                    <h3 className="text-3xl font-bold text-white mb-3">Burj Khalifa Construction</h3>
+                    <p className="text-white/90 text-lg mb-4">
+                      FMEA analysis for structural integrity, wind loads, and fire safety across 163 floors
+                    </p>
+                    <div className="flex gap-3 text-sm text-white/80">
+                      <span className="flex items-center gap-1"><AlertTriangle className="w-4 h-4" /> Safety Critical</span>
+                      <span className="flex items-center gap-1"><Gauge className="w-4 h-4" /> RPN 850</span>
+                      <span className="flex items-center gap-1"><Users className="w-4 h-4" /> 12K Workers</span>
+                    </div>
+                  </div>
+                  <img
+                    src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&h=600&fit=crop"
+                    alt="Skyscraper Construction"
+                    className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
+                  />
+                </motion.div>
+
+                {/* Channel Tunnel */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 to-teal-900/90 flex flex-col justify-end p-8">
+                    <div className="absolute top-6 right-6 px-4 py-2 bg-yellow-500 text-black font-bold rounded-lg text-sm">
+                      50km Subsea Risk
+                    </div>
+                    <h3 className="text-3xl font-bold text-white mb-3">Channel Tunnel (Chunnel)</h3>
+                    <p className="text-white/90 text-lg mb-4">
+                      Bow-Tie analysis for flooding threats, tunnel collapse, and cross-border coordination challenges
+                    </p>
+                    <div className="flex gap-3 text-sm text-white/80">
+                      <span className="flex items-center gap-1"><Network className="w-4 h-4" /> Multi-Country</span>
+                      <span className="flex items-center gap-1"><Database className="w-4 h-4" /> Geological Data</span>
+                      <span className="flex items-center gap-1"><Shield className="w-4 h-4" /> 200 Controls</span>
+                    </div>
+                  </div>
+                  <img
+                    src="https://images.unsplash.com/photo-1464207687429-7505649dae38?w=800&h=600&fit=crop"
+                    alt="Tunnel Engineering"
+                    className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
+                  />
+                </motion.div>
+
+                {/* International Space Station */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 to-zinc-900/90 flex flex-col justify-end p-8">
+                    <div className="absolute top-6 right-6 px-4 py-2 bg-purple-500 text-white font-bold rounded-lg text-sm">
+                      $150B Program Risk
+                    </div>
+                    <h3 className="text-3xl font-bold text-white mb-3">International Space Station</h3>
+                    <p className="text-white/90 text-lg mb-4">
+                      Digital Twin monitoring for life support, solar arrays, and mission-critical systems in orbit
+                    </p>
+                    <div className="flex gap-3 text-sm text-white/80">
+                      <span className="flex items-center gap-1"><Brain className="w-4 h-4" /> AI Monitoring</span>
+                      <span className="flex items-center gap-1"><Activity className="w-4 h-4" /> Real-time Sensors</span>
+                      <span className="flex items-center gap-1"><Zap className="w-4 h-4" /> Zero Failure</span>
+                    </div>
+                  </div>
+                  <img
+                    src="https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?w=800&h=600&fit=crop"
+                    alt="Space Technology"
+                    className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
+                  />
+                </motion.div>
+
+                {/* Three Gorges Dam */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-900/90 to-lime-900/90 flex flex-col justify-end p-8">
+                    <div className="absolute top-6 right-6 px-4 py-2 bg-green-500 text-white font-bold rounded-lg text-sm">
+                      Climate Risk Leader
+                    </div>
+                    <h3 className="text-3xl font-bold text-white mb-3">Three Gorges Dam</h3>
+                    <p className="text-white/90 text-lg mb-4">
+                      Climate risk modeling for flood management, seismic activity, and environmental impact across 600km
+                    </p>
+                    <div className="flex gap-3 text-sm text-white/80">
+                      <span className="flex items-center gap-1"><Network className="w-4 h-4" /> System Dynamics</span>
+                      <span className="flex items-center gap-1"><FileBarChart className="w-4 h-4" /> VaR Analysis</span>
+                      <span className="flex items-center gap-1"><TrendingUp className="w-4 h-4" /> 22.5 GW Power</span>
+                    </div>
+                  </div>
+                  <img
+                    src="https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=800&h=600&fit=crop"
+                    alt="Dam Infrastructure"
+                    className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
+                  />
+                </motion.div>
+
+                {/* London Crossrail */}
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -5 }}
+                  className="w-[600px] h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl relative group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-900/90 to-pink-900/90 flex flex-col justify-end p-8">
+                    <div className="absolute top-6 right-6 px-4 py-2 bg-red-600 text-white font-bold rounded-lg text-sm">
+                      £4B Over Budget
+                    </div>
+                    <h3 className="text-3xl font-bold text-white mb-3">London Crossrail (Elizabeth Line)</h3>
+                    <p className="text-white/90 text-lg mb-4">
+                      Portfolio risk analytics for schedule delays, stakeholder management, and urban construction complexity
+                    </p>
+                    <div className="flex gap-3 text-sm text-white/80">
+                      <span className="flex items-center gap-1"><GitBranch className="w-4 h-4" /> 40 Stations</span>
+                      <span className="flex items-center gap-1"><Lock className="w-4 h-4" /> Compliance</span>
+                      <span className="flex items-center gap-1"><Users className="w-4 h-4" /> Stakeholder Risk</span>
+                    </div>
+                  </div>
+                  <img
+                    src="https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&h=600&fit=crop"
+                    alt="Railway Infrastructure"
+                    className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
+                  />
+                </motion.div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Indicator */}
+        <div className="text-center mt-8">
+          <p className="text-sm text-textMute">
+            ← Scrolling showcase of epoch-making projects managed with R_LUMINA →
+          </p>
+        </div>
+      </motion.section>
+
       {/* Quick Navigation with Dropdowns */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
@@ -1952,98 +2153,6 @@ function CoverPage() {
           </div>
         </div>
       </motion.section>
-
-      {/* Auto-Scrolling Image Carousel - People & Risk Imagery */}
-      <section className="py-12 bg-background overflow-hidden">
-        <div className="relative">
-          <h3 className="text-2xl font-bold text-center mb-8">Real-Time Risk Intelligence in Action</h3>
-
-          {/* Scrolling Container */}
-          <div className="relative overflow-hidden">
-            <motion.div
-              className="flex gap-6"
-              animate={{
-                x: [0, -2000],
-              }}
-              transition={{
-                x: {
-                  repeat: Infinity,
-                  repeatType: "loop",
-                  duration: 40,
-                  ease: "linear",
-                },
-              }}
-            >
-              {/* Repeat images twice for seamless loop */}
-              {[...Array(2)].map((_, setIdx) => (
-                <div key={setIdx} className="flex gap-6 shrink-0">
-                  {/* Human Images */}
-                  {[
-                    { img: "https://i.pravatar.cc/120?img=1", label: "Risk Analyst" },
-                    { img: "https://i.pravatar.cc/120?img=8", label: "CRO" },
-                    { img: "https://i.pravatar.cc/120?img=15", label: "CFO" },
-                    { img: "https://i.pravatar.cc/120?img=20", label: "Auditor" },
-                    { img: "https://i.pravatar.cc/120?img=27", label: "Compliance" },
-                    { img: "https://i.pravatar.cc/120?img=32", label: "Director" },
-                  ].map((person, idx) => (
-                    <div key={`person-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
-                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-primary/20 shadow-lg mb-2">
-                        <img src={person.img} alt={person.label} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-xs text-textMute">{person.label}</span>
-                    </div>
-                  ))}
-
-                  {/* Risk-Related Icons/Imagery */}
-                  {[
-                    { icon: <BarChart3 className="w-12 h-12" />, label: "Analytics", color: "from-blue-500 to-cyan-500" },
-                    { icon: <AlertTriangle className="w-12 h-12" />, label: "Alerts", color: "from-yellow-500 to-orange-500" },
-                    { icon: <Shield className="w-12 h-12" />, label: "Security", color: "from-green-500 to-emerald-500" },
-                    { icon: <Target className="w-12 h-12" />, label: "Strategy", color: "from-red-500 to-pink-500" },
-                    { icon: <Network className="w-12 h-12" />, label: "Network", color: "from-purple-500 to-indigo-500" },
-                    { icon: <Database className="w-12 h-12" />, label: "Data", color: "from-teal-500 to-cyan-500" },
-                  ].map((item, idx) => (
-                    <div key={`risk-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
-                      <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg mb-2`}>
-                        {item.icon}
-                      </div>
-                      <span className="text-xs text-textMute">{item.label}</span>
-                    </div>
-                  ))}
-
-                  {/* More People */}
-                  {[
-                    { img: "https://i.pravatar.cc/120?img=41", label: "Manager" },
-                    { img: "https://i.pravatar.cc/120?img=47", label: "VP Risk" },
-                    { img: "https://i.pravatar.cc/120?img=52", label: "Executive" },
-                  ].map((person, idx) => (
-                    <div key={`person2-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
-                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-secondary/20 shadow-lg mb-2">
-                        <img src={person.img} alt={person.label} className="w-full h-full object-cover" />
-                      </div>
-                      <span className="text-xs text-textMute">{person.label}</span>
-                    </div>
-                  ))}
-
-                  {/* More Risk Icons */}
-                  {[
-                    { icon: <Gauge className="w-12 h-12" />, label: "KPIs", color: "from-indigo-500 to-blue-500" },
-                    { icon: <Lock className="w-12 h-12" />, label: "Compliance", color: "from-gray-500 to-slate-500" },
-                    { icon: <GitBranch className="w-12 h-12" />, label: "Scenarios", color: "from-pink-500 to-rose-500" },
-                  ].map((item, idx) => (
-                    <div key={`risk2-${setIdx}-${idx}`} className="flex flex-col items-center shrink-0">
-                      <div className={`w-20 h-20 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white shadow-lg mb-2`}>
-                        {item.icon}
-                      </div>
-                      <span className="text-xs text-textMute">{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
-      </section>
 
       {/* Data Upload Section with Professional Icons */}
       <motion.section
