@@ -1658,7 +1658,7 @@ function CoverPage() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="text-xl text-primary/90 font-bold mb-6 tracking-wider"
           >
-            RLum
+            What if you could see every risk before it becomes reality?
           </motion.p>
 
           <motion.p
@@ -1676,7 +1676,7 @@ function CoverPage() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-lg text-textMute/80 mb-12 max-w-3xl mx-auto leading-relaxed"
           >
-            The world&apos;s most comprehensive enterprise risk management platform.
+            One of the most comprehensive enterprise risk management platforms.
             29 advanced modules. Real-time AI insights. Digital twins. Monte Carlo simulations.
             All in one beautiful interface.
           </motion.p>
