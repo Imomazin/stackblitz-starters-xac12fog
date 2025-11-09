@@ -9,6 +9,8 @@ import { useRegisterStore } from "./store/register";
 import { runMonteCarloSync } from "@/lib/montecarlo";
 import { CASE_STUDIES, type CaseStudy } from "@/lib/data/caseStudies";
 import { CaseStudyModal } from "@/components/CaseStudyModal";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import {
   BarChart,
   Bar,
@@ -265,17 +267,119 @@ function CoverPage() {
   const [uploadedData, setUploadedData] = useState<File | null>(null);
   const [selectedCaseStudy, setSelectedCaseStudy] = useState<CaseStudy | null>(null);
 
-  const handleDataUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDataUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target?.files?.[0];
-    if (file) {
-      setUploadedData(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        alert(`Data uploaded successfully! File: ${file.name}\nRows: ${text.split('\n').length}\n\nNavigating to dashboard...`);
-        setActiveTab('dashboard');
-      };
-      reader.readAsText(file);
+    if (!file) return;
+
+    setUploadedData(file);
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+    try {
+      if (fileExtension === 'csv') {
+        // Parse CSV file
+        const text = await file.text();
+        Papa.parse(text, {
+          header: true,
+          dynamicTyping: true,
+          complete: (results) => {
+            const data = results.data as any[];
+            if (data.length > 0) {
+              const columns = Object.keys(data[0]);
+
+              // Create scenario variables from numeric columns
+              const variables = columns
+                .filter(col => typeof data[0][col] === 'number')
+                .slice(0, 5) // Limit to first 5 numeric columns
+                .map((col, idx) => {
+                  const values = data.map(row => row[col]).filter(v => typeof v === 'number');
+                  const min = Math.min(...values);
+                  const max = Math.max(...values);
+                  const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+
+                  return {
+                    id: `v${idx + 1}`,
+                    name: col,
+                    dist: 'triangular' as const,
+                    params: { min, mode: avg, max }
+                  };
+                });
+
+              if (variables.length > 0) {
+                const scenario = {
+                  id: `scenario_${Date.now()}`,
+                  title: `${file.name} - Uploaded Data`,
+                  horizonDays: 90,
+                  runs: 10000,
+                  correlation: "none" as const,
+                  variables,
+                  kpi: variables[0].id as any,
+                  createdAt: Date.now(),
+                  updatedAt: Date.now()
+                };
+                addScenario(scenario);
+                alert(`✅ Data uploaded successfully!\n\nFile: ${file.name}\nRows: ${data.length}\nVariables created: ${variables.length}\n\nNavigating to Monte Carlo...`);
+                setActiveTab('monte-carlo');
+              } else {
+                alert(`⚠️ No numeric columns found in the CSV file. Please ensure your file contains numeric data.`);
+              }
+            }
+          },
+          error: (error: any) => {
+            alert(`❌ Error parsing CSV: ${error.message}`);
+          }
+        });
+      } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+        // Parse Excel file
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(firstSheet);
+
+        if (data.length > 0) {
+          const columns = Object.keys(data[0] as any);
+
+          // Create scenario variables from numeric columns
+          const variables = columns
+            .filter(col => typeof (data[0] as any)[col] === 'number')
+            .slice(0, 5) // Limit to first 5 numeric columns
+            .map((col, idx) => {
+              const values = data.map(row => (row as any)[col]).filter(v => typeof v === 'number');
+              const min = Math.min(...values);
+              const max = Math.max(...values);
+              const avg = values.reduce((sum: number, v: number) => sum + v, 0) / values.length;
+
+              return {
+                id: `v${idx + 1}`,
+                name: col,
+                dist: 'triangular' as const,
+                params: { min, mode: avg, max }
+              };
+            });
+
+          if (variables.length > 0) {
+            const scenario = {
+              id: `scenario_${Date.now()}`,
+              title: `${file.name} - Uploaded Data`,
+              horizonDays: 90,
+              runs: 10000,
+              correlation: "none" as const,
+              variables,
+              kpi: variables[0].id as any,
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            };
+            addScenario(scenario);
+            alert(`✅ Data uploaded successfully!\n\nFile: ${file.name}\nRows: ${data.length}\nVariables created: ${variables.length}\n\nNavigating to Monte Carlo...`);
+            setActiveTab('monte-carlo');
+          } else {
+            alert(`⚠️ No numeric columns found in the Excel file. Please ensure your file contains numeric data.`);
+          }
+        }
+      } else {
+        alert(`❌ Unsupported file format. Please upload CSV or Excel files.`);
+      }
+    } catch (error: any) {
+      alert(`❌ Error processing file: ${error.message}`);
     }
   };
 
