@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
   if (
     pathname === '/' ||
     pathname.startsWith('/auth') ||
-    pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api') || // Allow all API routes
     pathname.startsWith('/_next') ||
     pathname.startsWith('/public') ||
     pathname.includes('.')
@@ -40,11 +40,11 @@ export const config = {
      * Match all request paths except:
      * - / (home page)
      * - /auth/* (auth pages)
-     * - /api/auth/* (auth API routes)
+     * - /api/* (API routes - handle their own auth)
      * - /_next/* (Next.js internals)
      * - /public/* (public files)
      * - *.* (files with extensions like .js, .css, .png, etc.)
      */
-    '/((?!api/auth|auth|_next|public|.*\\.).*)',
+    '/((?!api|auth|_next|public|.*\\.).*)',
   ],
 };
