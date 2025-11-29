@@ -123,11 +123,13 @@ function AIChat({ showChat, setShowChat }: { showChat: boolean; setShowChat: (sh
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          question,
-          history: messages.slice(-10).map(msg => ({
-            role: msg.role === 'user' ? 'user' : 'assistant',
-            content: msg.content
-          }))
+          message: question, // Updated to match new API
+          context: {
+            conversationHistory: messages.slice(-6).map(msg => ({
+              role: msg.role,
+              content: msg.content.substring(0, 200) // Limit context size
+            }))
+          }
         }),
       });
 
@@ -149,18 +151,45 @@ Try refreshing the page, or contact support if this persists.`;
       }
 
       const data = await response.json();
-      console.log('[AI Advisor] Response received:', data._source);
+      console.log('[AI Advisor] Response received:', data);
 
-      if (data.error) {
+      // Handle error field in response
+      if (data.error && !data.plan) {
         console.error('[AI Advisor] API error:', data.error);
         return `⚠️ **${data.error}**
 
-${data.details || 'An unexpected error occurred.'}
+${data.hint || 'An unexpected error occurred.'}
 
 **Tip:** Check your environment configuration and try again.`;
       }
 
-      return data.response || '🤔 I received an empty response. Please try rephrasing your question.';
+      // Format structured response into readable text
+      if (data.plan && data.summary) {
+        let formattedResponse = `**${data.summary}**\n\n`;
+
+        if (data.plan.length > 0) {
+          formattedResponse += `**Recommended Actions:**\n`;
+          data.plan.forEach((step: string, idx: number) => {
+            formattedResponse += `${idx + 1}. ${step}\n`;
+          });
+        }
+
+        if (data.key_risks && data.key_risks.length > 0) {
+          formattedResponse += `\n**Key Risks:**\n`;
+          data.key_risks.forEach((risk: any) => {
+            formattedResponse += `• **${risk.name}** (${risk.likelihood} likelihood, ${risk.impact} impact)\n`;
+            formattedResponse += `  → ${risk.mitigation}\n`;
+          });
+        }
+
+        if (data.error) {
+          formattedResponse += `\n⚠️ *Note: This response may be degraded due to: ${data.error}*`;
+        }
+
+        return formattedResponse;
+      }
+
+      return '🤔 I received an empty response. Please try rephrasing your question.';
     } catch (error: any) {
       console.error('[AI Advisor] Request failed:', error);
 
