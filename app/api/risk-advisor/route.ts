@@ -8,8 +8,8 @@ type RiskAdvisorReply = {
   score: number; // 0..1
   key_risks: Array<{
     name: string;
-    likelihood: string;
-    impact: string;
+    likelihood: "low" | "medium" | "high";
+    impact: "low" | "medium" | "high";
     mitigation: string;
   }>;
   meta?: {
@@ -17,18 +17,8 @@ type RiskAdvisorReply = {
     model?: string;
     tokens?: { input?: number; output?: number };
   };
+  error?: string; // optional, only when degraded
 };
-
-const JSON_SCHEMA_HINT = `
-Return ONLY valid JSON for:
-type RiskAdvisorReply = {
-  plan: string[];
-  summary: string;
-  score: number; // 0..1
-  key_risks: Array<{name: string; likelihood: string; impact: string; mitigation: string;}>;
-};
-No extra text, no markdown, no code fences.
-`;
 
 // Tiny safe JSON parse
 function safeParse<T = unknown>(s: string): T | null {
@@ -103,10 +93,16 @@ export async function POST(req: Request) {
   // Build a compact context string (avoid dumping giant objects)
   const ctx = context ? JSON.stringify(context).slice(0, 4000) : "none";
 
-  const system = `You are R_Lumina's Risk Advisor.
-You answer concisely and return ONLY valid JSON that satisfies the TypeScript type below.
-Use realistic, actionable recommendations grounded in business risk practices.
-${JSON_SCHEMA_HINT}`;
+  const system = `You are R_Lumina's AI Risk Advisor for Ambidexters Inc.
+Return ONLY valid JSON that satisfies this TypeScript type:
+type RiskAdvisorReply = {
+  plan: string[];
+  summary: string;
+  score: number; // 0..1
+  key_risks: Array<{ name: string; likelihood: "low"|"medium"|"high"; impact: "low"|"medium"|"high"; mitigation: string }>;
+};
+Do not include markdown or code fences. Keep steps short and operational.
+If uncertain, keep score conservative. No extra keys outside the schema.`;
 
   const userPrompt = `
 User message:
@@ -123,6 +119,13 @@ ${ctx}
       temperature: 0.2,
       system,
       messages: [{ role: "user", content: userPrompt }],
+    });
+
+    // Log request info (no key leakage)
+    console.log("[risk-advisor]", {
+      request_id: msg.id,
+      model: msg.model,
+      usage: msg.usage,
     });
 
     const contentText =
@@ -153,11 +156,11 @@ ${ctx}
         ],
         meta: {
           model: msg?.model ?? "unknown",
-          request_id: (msg as any)?._request_id,
-          tokens: (msg as any)?.usage
+          request_id: msg?.id,
+          tokens: msg?.usage
             ? {
-                input: (msg as any).usage.input_tokens,
-                output: (msg as any).usage.output_tokens,
+                input: msg.usage.input_tokens,
+                output: msg.usage.output_tokens,
               }
             : undefined,
         },
@@ -168,11 +171,11 @@ ${ctx}
     // Augment with meta
     parsed.meta = {
       model: msg?.model ?? "unknown",
-      request_id: (msg as any)?._request_id,
-      tokens: (msg as any)?.usage
+      request_id: msg?.id,
+      tokens: msg?.usage
         ? {
-            input: (msg as any).usage.input_tokens,
-            output: (msg as any).usage.output_tokens,
+            input: msg.usage.input_tokens,
+            output: msg.usage.output_tokens,
           }
         : undefined,
     };
